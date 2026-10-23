@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Veille IA x BTP et Architecture</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      --primary: #0f172a;
+      --primary-hover: #1e293b;
+      --accent: #2563eb;
+      --accent-subtle: #eff6ff;
+      --accent-border: #bfdbfe;
+      --success: #15803d;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --warning: #b45309;
+      --warning-bg: #fffbeb;
+      --warning-border: #fef3c7;
+      --danger: #b91c1c;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    /* En-tête sobre */
+    header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 1.25rem 5vw; }
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    h1 { font-size: 1.35rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .header-meta { display: flex; align-items: center; gap: 1rem; font-size: 0.82rem; color: var(--text-muted); }
+
+    /* Barre d'action supérieure */
+    .action-bar-container { background: #ffffff; border-bottom: 1px solid var(--border); padding: 0.85rem 5vw; }
+    .action-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+    .action-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+    .btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: #ffffff; color: var(--text); transition: all 0.15s ease; text-decoration: none; }
+    .btn:hover { background: #f1f5f9; border-color: var(--border-dark); }
+    .btn-primary { background: var(--primary); color: #ffffff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .btn-success:hover { background: #dcfce7; }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+
+    .status-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-weight: 500; }
+    .status-online { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .status-offline { background: #fffbeb; color: #92400e; border: 1px solid #fef3c7; }
+    .status-cloud { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .status-toast { margin-top: 0.5rem; padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.82rem; display: none; }
+    .toast-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .toast-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .toast-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    /* KPIs */
+    .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; margin: 1.25rem 5vw 0 5vw; }
+    .kpi-card { background: var(--card-bg); padding: 0.9rem 1.1rem; border-radius: 6px; border: 1px solid var(--border); }
+    .kpi-num { font-size: 1.5rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .kpi-label { font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.15rem; font-weight: 600; }
+
+    /* Zone de contenu */
+    main { padding: 1.25rem 5vw 3rem 5vw; }
+    .nav-tabs { display: flex; gap: 0.35rem; margin-bottom: 1.25rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 0.35rem; }
+    .tab-btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.95rem; border: 1px solid transparent; background: transparent; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.84rem; color: var(--text-muted); transition: all 0.12s ease; }
+    .tab-btn:hover { background: #f1f5f9; color: var(--text); }
+    .tab-btn.active { background: #ffffff; color: var(--text); border-color: var(--border); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+    /* Filtres fiches validées */
+    .controls { background: var(--card-bg); padding: 0.9rem 1.1rem; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+    .control-group { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; }
+    select, input[type="text"], input[type="range"] { padding: 0.4rem 0.65rem; border: 1px solid var(--border); border-radius: 5px; font-size: 0.84rem; background: #ffffff; color: var(--text); }
+    select:focus, input[type="text"]:focus { outline: none; border-color: var(--primary); }
+    input[type="text"] { min-width: 260px; }
+
+    /* Grille de cartes */
+    .grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+    .carte { background: var(--card-bg); border-radius: 6px; padding: 1.15rem; border: 1px solid var(--border); transition: border-color 0.15s ease; }
+    .carte:hover { border-color: var(--border-dark); }
+    .carte-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem; }
+    .carte-title-wrapper { display: flex; align-items: flex-start; gap: 0.5rem; flex: 1; }
+    .carte-title { font-size: 0.98rem; font-weight: 600; color: var(--text); text-decoration: none; line-height: 1.4; }
+    .carte-title:hover { color: var(--accent); }
+    .icon-link { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; color: var(--text-muted); text-decoration: none; border: 1px solid var(--border); background: #f8fafc; flex-shrink: 0; }
+    .icon-link:hover { color: var(--text); border-color: var(--border-dark); background: #f1f5f9; }
+
+    .score-badge { font-weight: 700; font-size: 1.05rem; padding: 0.2rem 0.55rem; border-radius: 5px; background: #f1f5f9; color: var(--text); font-variant-numeric: tabular-nums; }
+    .score-high { background: var(--accent-subtle); color: var(--accent); border: 1px solid var(--accent-border); }
+
+    .meta-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.65rem; font-size: 0.75rem; }
+    .tag { padding: 0.12rem 0.45rem; border-radius: 4px; font-weight: 500; border: 1px solid var(--border); background: #f8fafc; color: var(--text-muted); }
+    .tag-conception { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .tag-chantier { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+    .tag-exploitation { background: #faf5ff; color: #6b21a8; border-color: #e9d5ff; }
+
+    .resume { color: #334155; font-size: 0.88rem; line-height: 1.5; }
+
+    /* Filtres et badges de rejet */
+    .rejets-filter-bar { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; align-items: center; }
+    .rejet-pill { font-size: 0.78rem; padding: 0.3rem 0.65rem; border-radius: 999px; border: 1px solid var(--border); background: #ffffff; color: var(--text-muted); cursor: pointer; transition: all 0.12s ease; }
+    .rejet-pill:hover { background: #f1f5f9; color: var(--text); }
+    .rejet-pill.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; }
+
+    /* Vues documentaires (Rapports, CRAAP, Architecture) */
+    .doc-section { background: #ffffff; border-radius: 6px; border: 1px solid var(--border); padding: 1.5rem; }
+    .doc-title { font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; letter-spacing: -0.01em; }
+    .doc-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; }
+    .doc-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 1rem; }
+    .doc-table th { background: #f8fafc; padding: 0.65rem 0.85rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); color: var(--text); }
+    .doc-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border); color: #334155; }
+    .doc-table tr:last-child td { border-bottom: none; }
+    .formula-box { background: #f8fafc; border: 1px solid var(--border); border-left: 3px solid var(--primary); padding: 0.85rem 1rem; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; color: #1e293b; margin: 0.85rem 0; line-height: 1.6; }
+
+    .empty { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.95rem; }
+    .markdown-view { background: #fff; padding: 1.5rem; border-radius: 6px; border: 1px solid var(--border); white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; font-size: 0.82rem; line-height: 1.6; color: #334155; }
+    
+    /* Icônes SVG inline */
+    .icon { width: 14px; height: 14px; stroke-width: 2; vertical-align: -2px; }
+  </style>
+</head>
+<body>
+  <!-- EN-TÊTE -->
+  <header>
+    <div class="header-content">
+      <h1>Veille IA x BTP et Architecture</h1>
+      <div class="header-meta">
+        <span>Actualisé le : 15/10/2026</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- BARRE D'ACTIONS -->
+  <div class="action-bar-container">
+    <div class="action-bar">
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="declencherVeille(this)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+          Lancer la veille
+        </button>
+        <a id="btn-excel-veille" href="../data/veille.xlsx" download="veille.xlsx" class="btn" title="Télécharger le classeur Excel mis en forme (.xlsx)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+          Export Excel (.xlsx)
+        </a>
+        <a id="btn-csv-veille" href="../data/veille.csv" download="veille.csv" class="btn" title="Télécharger veille au format CSV brut">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export CSV
+        </a>
+        <a id="btn-excel-rejets" href="../data/rejets.xlsx" download="rejets.xlsx" class="btn" title="Télécharger les rejets au format Excel (.xlsx)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+          Rejets (.xlsx)
+        </a>
+        <button class="btn" onclick="reinitialiserDemo(this)" title="Réinitialiser le jeu de test démo">
+          Réinitialiser démo
+        </button>
+      </div>
+      <div>
+        <span id="statut-serveur" class="status-pill status-offline">
+          <span class="dot"></span> Vérification...
+        </span>
+      </div>
+    </div>
+    <div id="toast" class="status-toast"></div>
+  </div>
+
+  <!-- KPI SUMMARY -->
+  <div class="kpi-container">
+    <div class="kpi-card"><div class="kpi-num" id="kpi-total">0</div><div class="kpi-label">Innovations retenues</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-chaud" style="color:var(--accent);">0</div><div class="kpi-label">Fiches prioritaires (Score >= 7.5)</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-conception">0</div><div class="kpi-label">Phase Conception / BIM</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-chantier">0</div><div class="kpi-label">Phase Chantier / Sécurité</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-exploitation">0</div><div class="kpi-label">Phase Exploitation / Jumeaux</div></div>
+  </div>
+
+  <main>
+    <!-- NAVIGATION PAR ONGLETS -->
+    <div class="nav-tabs">
+      <button id="tab-valides" class="tab-btn active" onclick="basculerTab('valides')">Fiches validées (<span id="count-valides">0</span>)</button>
+      <button id="tab-rejets" class="tab-btn" onclick="basculerTab('rejets')">Rejetés / Vérification (<span id="count-rejets">0</span>)</button>
+      <button id="tab-rapport" class="tab-btn" onclick="basculerTab('rapport')">Rapport du jour</button>
+      <button id="tab-sources" class="tab-btn" onclick="basculerTab('sources')">Sources & Grille CRAAP</button>
+      <button id="tab-notation" class="tab-btn" onclick="basculerTab('notation')">Grille & Notation des articles</button>
+      <button id="tab-archi" class="tab-btn" onclick="basculerTab('archi')">Comment ça marche ?</button>
+    </div>
+
+    <!-- FILTRES RECHERCHE FICHES VALIDÉES -->
+    <div class="controls" id="controls-valides">
+      <div class="control-group">
+        <label for="recherche" style="font-weight:500;">Recherche :</label>
+        <input id="recherche" type="text" placeholder="Mots-clés (ex: BIM, drone, jumeau, Autodesk)...">
+      </div>
+      <div class="control-group">
+        <label for="phase" style="font-weight:500;">Cycle de vie :</label>
+        <select id="phase">
+          <option value="">Toutes les phases</option>
+          <option value="Conception">Conception & BIM</option>
+          <option value="Chantier">Chantier & Sécurité</option>
+          <option value="Exploitation">Exploitation & Maintenance</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="min" style="font-weight:500;">Score minimum :</label>
+        <input id="min" type="range" min="0" max="10" step="0.5" value="0">
+        <span style="font-variant-numeric:tabular-nums; font-weight:600;"><span id="val">0</span> / 10</span>
+      </div>
+      <div class="control-group" style="margin-left:auto; color:var(--text-muted); font-size:0.8rem;">
+        <span id="nb">0 fiches affichées</span>
+      </div>
+    </div>
+
+    <!-- CONTENEUR DES VUES -->
+    <div id="liste" class="grid"></div>
+  </main>
+
+  <script>
+    const DONNEES = [{"date_collecte": "2026-10-13", "date_pub": "2026-10-01", "source": "Canadian Architect", "titre": "Generative AI arrives at architecture’s stoop", "lien": "https://canadianarchitect.com/generative-ai-arrives-at-architectures-stoop/", "phase": "Conception", "trl": 6.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 6.8, "fraicheur": 6.0, "score": 7.2, "methode": "LLM", "resume_fr": "L'intelligence artificielle générative commence à s'intégrer discrètement dans les réunions de conception architecturale et les workflows clients. Cet outil transforme la manière dont les architectes échangent et itèrent sur les premières maquettes et rendus numériques."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-07", "source": "Google Actualités EN (AI in AEC)", "titre": "In Las Vegas, Autodesk Goes All In on Artificial Intelligence - Architectural Record", "lien": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNU1I0TTY5LWdrb0RieTlXYllhRFRRNTVKYXZGdnZEOTh4c2xMR25hVllYMXh5RHkwQy1uNVJMdWpNXy1heWk1UklrcFFvcms1d1J6LU1mN2JtcFhCaktzMVItWFlOMTdBR1lMRnlxUTJGMGFqcWJWODFsa3daQmNWMlZxalhlNmdRMHpTamRkbTFSdjZyWkk2R0JjV0pTNDNPWURBVWcwcWpOdDQwZ3pfRA?oc=5", "phase": "Conception", "trl": 8.0, "impact": 8.0, "pertinence": 9.0, "fiabilite": 7.6, "fraicheur": 7.7, "score": 8.4, "methode": "LLM", "resume_fr": "Lors de son evenement a Las Vegas, l'editeur Autodesk a annonce un virage strategique massif vers l'intelligence artificielle. Cette evolution vise a transformer les outils numeriques utilises par les professionnels de l'architecture et de la construction."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-12", "source": "Google Actualités EN (AI in AEC)", "titre": "GS E&C: “Making Construction Sites Safer with AI” - 매일경제", "lien": "https://news.google.com/rss/articles/CBMiU0FVX3lxTE1LVTlQajJBMi1nWF9tbW4tUFJod0pkOWF3NWlRZEdLRU51QktPUDZxeXl1eUMzZXVBeVdUVXplajFRUmFGNEJNTGxxdV9tX3dQR2E4?oc=5", "phase": "Chantier", "trl": 7.0, "impact": 8.0, "pertinence": 9.0, "fiabilite": 7.6, "fraicheur": 9.3, "score": 8.4, "methode": "LLM", "resume_fr": "Le géant de la construction GS E&C déploie des solutions d'intelligence artificielle pour sécuriser ses chantiers. Cette initiative vise à réduire les risques d'accidents grâce à une surveillance et une prévention accrues."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-05", "source": "arXiv (IA x construction)", "titre": "Vision-enabled detection of safety helmet compliance in construction zones", "lien": "https://arxiv.org/abs/2610.05756v1", "phase": "Chantier", "trl": 7.0, "impact": 8.0, "pertinence": 9.0, "fiabilite": 8.0, "fraicheur": 7.0, "score": 8.2, "methode": "LLM", "resume_fr": "Cette étude présente un système de vision par ordinateur basé sur l'algorithme YOLOv8 pour détecter en temps réel le port du casque sur les chantiers. Les résultats montrent une précision supérieure à 97 %, offrant ainsi une solution technologique efficace pour améliorer la sécurité et prévenir les risques d'accidents des travailleurs."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-07", "source": "Google Actualités EN (AI in AEC)", "titre": "Hoban Construction automates unit-specific BIM options with AI in Korea - CHOSUNBIZ - Chosunbiz", "lien": "https://news.google.com/rss/articles/CBMihAFBVV95cUxOOUotRzdOZTRhNjdmaHg4eVVBNVRCYmthRlI1QXdSTXJKOUI1bXR6Z1pPUERDLXlQTHU0cXFQLWJUVEhUV1RVYlNQdE9PUWFFR0pzMjZudlR5MGp4UjNMNkZ3dE94Q1QyMWZHUC1IX0t2TzJ5a1RkazhabFNzV2x3dGJQOEnSAZgBQVVfeXFMT0E0NXlBdnNRQnl2S28ycWRDTGVEbW1RVHlrVTd4QmEtUmVjazZLR0NzQ1FIN1ItTFNQQXJ6ajM1MDFYa2xCWEEzUjRqV01YQ2NESXdHaGh5MVpzYmp3VmM0Ti1CVjlqcWNvaFRsczlpRzIzUkRMRHI2XzRacHZ4RVdPTVVlWl8wWUlKZXAzVlluWi1mZXZ2VVU?oc=5", "phase": "Conception", "trl": 7.0, "impact": 7.0, "pertinence": 9.0, "fiabilite": 7.6, "fraicheur": 7.3, "score": 8.0, "methode": "LLM", "resume_fr": "L'entreprise Hoban Construction intègre l'intelligence artificielle pour automatiser la génération d'options BIM spécifiques aux unités de logement en Corée. Cette avancée permet d'optimiser les phases de conception et de répondre plus rapidement aux besoins des projets."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-06", "source": "AEC Magazine", "titre": "QA/QC platform links BIM models and drawing sets", "lien": "https://aecmag.com/bim/qa-qc-platform-links-bim-models-and-drawing-sets/", "phase": "Conception", "trl": 7.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 9.2, "fraicheur": 7.3, "score": 7.9, "methode": "LLM", "resume_fr": "Une nouvelle plateforme basée sur l'intelligence artificielle permet de lier automatiquement les anomalies détectées sur les plans 2D aux éléments correspondants dans les modèles BIM Revit. Cette solution améliore l'efficacité des processus de contrôle et d'assurance qualité (QA/QC) dans les projets de construction."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-06", "source": "AEC Magazine", "titre": "Volve AI to help automate tendering and pre-construction tasks", "lien": "https://aecmag.com/construction/volve-ai-to-help-automate-tendering-and-pre-construction-tasks/", "phase": "Conception", "trl": 7.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 9.2, "fraicheur": 7.3, "score": 7.9, "methode": "LLM", "resume_fr": "Volve AI lance une nouvelle couche d'orchestration permettant aux entrepreneurs d'automatiser les tâches de pré-construction. La solution facilite la comparaison des informations entre les spécifications, les plans et les maquettes BIM."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-07", "source": "Google Actualités FR (IA & BTP)", "titre": "IA pour l'architecture : un architecte augmente sa productivité de 80 % et libère un jour de travail par semaine - Demócrata", "lien": "https://news.google.com/rss/articles/CBMi9gFBVV95cUxONVQ1YnB0WmpraHpZUmJVcFNDZzR5WW9uWkhCS2tRUmNNWWlVR2JBTFFGVnlLMGs4VUo1a25lY2FDNHFEY2hUUkhyUUxJaG9OcU82S0lGcnF0WExkYWdPcXkzNFNyaDE2MWk3Sy1OTFg2eVIzcmNpOEI0UzNVZXkwNUc2VUt5bS1xVUNYQXRUQlJ0VGk2N2pfZTJ2T20zWWdEVW1TUi1USEo4NjFTVnhFOEpwQmkzaHNEVG1qaGxkbE5JeUdlNWxNbGdXMEFVaXIwV050NWlmM2ZwdUJKZV9DeU9jZGhDaGN3NmRtdkFDc21GRGh1WWfSAfsBQVVfeXFMTVN0ak1wdjBKa28tbXoxUW05aTRHQTNONm1BZnktdlVObmFKM1NtMWxXdEVES3pOVjBFdjNDa1ZwU2tzbWZkb04tNnBNMmxxc243TkRLVWFvaFN0emRkX0lDc0Vjd1JzN3p0VklQa0dGcDhqcnA4UG1fRXhKalN1eFFGTjhHLVVBS0s5ZzBHcUV6ZlBKRXpiaGxqRzNkdW5lZURyR0IzNHhMSGdHMDRVc2thc3JvNWZBT0h1OFZhVGJwZlFiM2lFVzRoaWkxRXhZNnBBZ2tJTVVybHYxWDZkOWxuRVR5OUY3OEZ4S0NDYkxVNl9zUl9uZjZZWjA?oc=5", "phase": "Conception", "trl": 7.0, "impact": 8.0, "pertinence": 8.0, "fiabilite": 7.6, "fraicheur": 7.7, "score": 7.9, "methode": "LLM", "resume_fr": "Un architecte démontre que l'utilisation de l'intelligence artificielle permet d'augmenter la productivité de 80 % dans son agence. Cette technologie aide à libérer un jour de travail complet par semaine en optimisant les tâches de conception."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-12", "source": "AEC Magazine", "titre": "Why AI should influence your next AEC workstation purchase", "lien": "https://aecmag.com/sponsored-content/why-ai-should-influence-your-next-aec-workstation-purchase/", "phase": "Conception", "trl": 8.0, "impact": 6.0, "pertinence": 7.0, "fiabilite": 9.2, "fraicheur": 9.3, "score": 7.8, "methode": "LLM", "resume_fr": "Cet article explique pourquoi l'intégration croissante de l'intelligence artificielle dans les logiciels de conception doit désormais influencer l'achat des stations de travail dans le secteur AEC. Il souligne que la puissance des processeurs et cartes graphiques ne suffit plus à évaluer les performances matérielles."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-10", "source": "Google Actualités FR (IA & BTP)", "titre": "Dans le Nord, le groupe de BTP Lhotellier se frotte à l’intelligence artificielle pour mieux anticiper les appels d’offres - Le Moniteur", "lien": "https://news.google.com/rss/articles/CBMiywFBVV95cUxNSjhHU182Z19SODJfQjhnbTV4MW1uLWVsYnUxM3lJX1drTDNOM2ZWUDNCWk1hUjc0VlRPZWc5N0VPZ05vYXdJQ2l4QzE3c0dOU1cxRi1TTGxGZDZZbHozQjFQeWtwVjBGNWdFZHU2WFFOSHJzNnR1YWN2NFNpU0RWTGM5ZUdlMkVYa1hhVm9WeXFxeGs3SFVyazhNVWJFenhSNzhpNk01VzhMRkpiU2lLOEVDalVXb0p3X1VpSmZ0NmVOX0xRa3NtU202bw?oc=5", "phase": "Conception", "trl": 7.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 7.6, "fraicheur": 8.7, "score": 7.8, "methode": "LLM", "resume_fr": "Le groupe de BTP Lhotellier expérimente l'intelligence artificielle pour améliorer son anticipation et sa gestion des appels d'offres. Cette application vise à optimiser le positionnement stratégique de l'entreprise sur ses marchés."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-05", "source": "AEC Magazine", "titre": "BIMlogiq boosts Argus AI platform for Revit", "lien": "https://aecmag.com/bim/bimlogiq-argus-ai-platform-launches-for-revit/", "phase": "Conception", "trl": 6.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 9.2, "fraicheur": 7.0, "score": 7.7, "methode": "LLM", "resume_fr": "BIMlogiq améliore sa plateforme Argus AI pour le logiciel Revit grâce à un système multi-agents. Cette technologie vise à automatiser les flux de travail BIM, allant de la création de familles Revit jusqu'à la modélisation des armatures."}, {"date_collecte": "2026-10-15", "date_pub": "2026-09-29", "source": "AEC Magazine", "titre": "Accenture forms Accenture Construct", "lien": "https://aecmag.com/construction/accenture-forms-accenture-construct/", "phase": "Conception", "trl": 7.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 9.2, "fraicheur": 5.0, "score": 7.7, "methode": "LLM", "resume_fr": "Accenture a créé Accenture Construct, une nouvelle entité destinée aux propriétaires de grands projets d'infrastructure. Cette offre s'appuie sur l'intelligence artificielle et une plateforme de données partagées pour assurer une gestion intégrée et unifiée."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-14", "source": "Google Actualités FR (IA & BTP)", "titre": "Neura Robotics passe un cap avec son modèle multimodal Neuron AI qui regroupe tous les modes de perception dans une seule architecture - L'Usine Digitale", "lien": "https://news.google.com/rss/articles/CBMi0gJBVV95cUxOd3hlb1dxalM5NHBwQUJuS21SSk91NkMwR0h6ME1iNUx1TVVCSDdaWGU4cWQ4c0xqaDhqRWhibmN1UzlxVFdMd1RJQU9vV2xNT0hqLUZzOWR3Y3dIRkp2U1hJdktfYkw5dWQ0d0RiU056QS1FVVV1YkVuSGJvWEl5MF9mdTRxcmJVMElVb0tEM3JkWDRhZmo5dmRoQnJkYnliSU13cFJYS1RtTm5lWUdFTUFRaWNuQlZoYjNlTGdUTDZpZzhlUXRoTVhtLUx1SDRkdWNSN01MZEdGTXJDWEN3U2pkbGRubjRQSlFReENMdkNOTTVVZE41aHJ1Vld2UUZWd1ZiQWJaVm1HQ2hLZUhxZUdkdFM1aHk5dHV6UnlDNDRpNS1mel81UUZ1bW5Ta1JUTVlsN0xrdUhrOUV1bDU4bTlITHF2N0ItVDF2U0dwT0syZw?oc=5", "phase": "Chantier", "trl": 6.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 7.6, "fraicheur": 10.0, "score": 7.7, "methode": "LLM", "resume_fr": "Neura Robotics franchit une étape importante avec Neuron AI, un modèle multimodal unifiant tous les modes de perception au sein d'une même architecture. Cette innovation technologique améliore les capacités des robots intelligents pour des applications industrielles et potentiellement sur les chantiers."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-11", "source": "AEC Magazine", "titre": "GPT-6 Astra and the future of BIM modelling", "lien": "https://aecmag.com/bim/gpt-6-astra-and-the-future-of-bim-modelling/", "phase": "Conception", "trl": 4.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 9.2, "fraicheur": 9.0, "score": 7.6, "methode": "LLM", "resume_fr": "Cet article examine le potentiel du nouveau modèle d'IA d'OpenAI en tant que modeleur 3D. Il s'interroge sur son intégration future dans les processus de conception BIM soumis à des modifications constantes."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-02", "source": "arXiv (IA x construction)", "titre": "CORNAV: Construction-Aware Reasoning for Robot Navigation on Active Worksites", "lien": "https://arxiv.org/abs/2610.03622v1", "phase": "Chantier", "trl": 4.0, "impact": 8.0, "pertinence": 9.0, "fiabilite": 8.0, "fraicheur": 6.0, "score": 7.6, "methode": "LLM", "resume_fr": "Cet article présente CORNAV, un cadre de navigation pour robots sur les chantiers qui intègre des plans 2D et des plannings de projets. Il améliore considérablement la sécurité et la réussite des tâches par rapport aux systèmes de vision sémantique traditionnels."}, {"date_collecte": "2026-10-15", "date_pub": "2026-09-29", "source": "AEC Magazine", "titre": "AI and the BIM workstation: what if the LLM lives on your laptop?", "lien": "https://aecmag.com/workstations/ai-and-the-bim-workstation-what-if-the-llm-lives-on-your-laptop/", "phase": "Conception", "trl": 6.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 9.2, "fraicheur": 5.0, "score": 7.5, "methode": "LLM", "resume_fr": "Cet article explore l'utilisation de nouveaux processeurs puissants pour faire tourner des modèles de langage (LLM) directement sur les stations de travail locales. Cette approche locale promet d'améliorer la confidentialité et la réactivité des outils IA intégrés aux flux de travail BIM en architecture et construction."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-07", "source": "Google Actualités FR (IA & BTP)", "titre": "Le prochain avantage concurrentiel de la construction : les chantiers intelligents - Unite.AI", "lien": "https://news.google.com/rss/articles/CBMibkFVX3lxTE0yRFBRbHliYUl0WVVrc090ZUs4LWZrX3F4X2xJaWRqU2t4Zld2TkxDeXNQWk9qUzRjRGcwQk9RV1VBaDlpVHZVT1dPRHVWTEY0d1p2VFFQclpYOVBRSlZuM0JrTHRzNmpreFE4YU1R?oc=5", "phase": "Chantier", "trl": 6.0, "impact": 7.0, "pertinence": 8.0, "fiabilite": 7.6, "fraicheur": 7.7, "score": 7.5, "methode": "LLM", "resume_fr": "Les chantiers intelligents représentent le prochain grand avantage concurrentiel pour le secteur de la construction. L'intégration des technologies avancées permet d'optimiser les opérations et la gestion sur site."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-13", "source": "Google Actualités EN (AI in AEC)", "titre": "Arthur Mamou-Mani on AI, Circular Architecture, and Why Architects Must Rethink How We Build - Parametric Architecture", "lien": "https://news.google.com/rss/articles/CBMifEFVX3lxTE9qUnA3TTdVYVFFb2V1bVNEbFJwQXVTOGxaV2U2OWk1SS1GV0tITDMyMU13cVl4REpuNndrT0RnZmZSTFZXYVhkc2prZExSbWotU1Y0TGhZU0dXVUxvdXk2Sm1wdkpjRWFEZ2kxRG03c2JqMGRwV2pfUkNDenU?oc=5", "phase": "Conception", "trl": 4.0, "impact": 6.0, "pertinence": 8.0, "fiabilite": 7.6, "fraicheur": 9.7, "score": 7.2, "methode": "LLM", "resume_fr": "Cet article met en avant la vision de l'architecte Arthur Mamou-Mani sur l'intégration de l'intelligence artificielle et de l'architecture circulaire dans les processus de conception. Il souligne la nécessité urgente pour les professionnels du bâtiment de repenser les méthodes constructives pour faire face aux défis environnementaux."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-08", "source": "Google Actualités EN (AI in AEC)", "titre": "What Does Authorship in Architecture Mean in the Age of AI? - Archinect", "lien": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxOeC10ODY4TnFMY3VUQUlFLWdjaFN6SnZiVWgyb2dxOGVKZ05jOXI5SXhNMHhWYXRzTFEwc2QwcVppb0lnWE8wbkY2aWFENWRRT1FMSlI4b3REU00xenNGT3R6YzVpTmJ1NjVPWlFRalQzMVRTNDNEaW5Mbm1iZ0NlcXNJMzJCc29wWUVpT21BZy16RGJhMl9heGVCNENPMUtwMExSREFURjRNbGM?oc=5", "phase": "Conception", "trl": 6.0, "impact": 6.0, "pertinence": 7.0, "fiabilite": 7.6, "fraicheur": 8.0, "score": 7.0, "methode": "LLM", "resume_fr": "Cet article questionne l'évolution de la notion d'auteur et de conception architecturale face à l'émergence des outils d'intelligence artificielle. Il analyse l'impact de ces technologies sur le processus de création et le rôle de l'architecte."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-13", "source": "arXiv (IA x construction)", "titre": "DTScribe: Generating Models for Digital Twin Reporting using Local Large Language Models", "lien": "https://arxiv.org/abs/2610.18635v1", "phase": "Conception", "trl": 4.0, "impact": 6.0, "pertinence": 7.0, "fiabilite": 8.0, "fraicheur": 9.7, "score": 6.9, "methode": "LLM", "resume_fr": "Cet article explore l'utilisation de grands modèles de langage locaux pour automatiser la génération de modèles de jumeaux numériques à partir de documents techniques. L'approche combine extraction de données, modélisation ontologique et boucles de raffinement pour produire des visualisations et des rapports exploitables."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-02", "source": "Google Actualités FR (IA & BTP)", "titre": "Architecture : l’IA peut-elle prendre la place de l’architecte ? - Batiweb", "lien": "https://news.google.com/rss/articles/CBMijwFBVV95cUxNTFpjazU4TmV0dFZTWGp5bjRJdWo2NnpmcWV6dGVaUEw3dVhZbnRDMFB6MlV5UXl2VHNKRFh0N0JVNW9ZWEVrU3RoWklzTEduYzNFZ2VURDZNR3M1OVgtb21jTkF5MWkxLTB3cVRxbGJURTZGUExDQXVuX1BWR3F5REF3QzJyX3NOWnlMcWdSbw?oc=5", "phase": "Conception", "trl": 4.0, "impact": 6.0, "pertinence": 7.0, "fiabilite": 7.6, "fraicheur": 6.0, "score": 6.4, "methode": "LLM", "resume_fr": "Cet article analyse l'évolution de la profession d'architecte face à l'émergence des technologies d'intelligence artificielle. Il interroge la capacité de ces nouveaux outils à automatiser ou remplacer certaines tâches de conception."}, {"date_collecte": "2026-10-15", "date_pub": "2026-10-01", "source": "Google Actualités FR (IA & BTP)", "titre": "Bryant Lu de Ronald Lu & Partners explique comment l'IA transforme l'architecture - Tatler Asia", "lien": "https://news.google.com/rss/articles/CBMiowFBVV95cUxQSHhEQnFObnR5RG5yLTFQQTZSbFp6YVdOUzFhM0JrTjFYSFlDWDVLd3hpdmZpdG5PaDAzdzgwVk5XeEJnWlJ0TjV1dFlyQUwtRlVnUVRtaG45Y0dDaHBTQ2pOdDhIVGMxakpndFVOZUdJX240R0NXdlFIWnVNZDhBZlZxT2V6Z2FGc2J6WmxDWktYUEZNb2dWSE56eTJuQzZ5cEVR?oc=5", "phase": "Conception", "trl": 6.0, "impact": 3.0, "pertinence": 6.0, "fiabilite": 7.6, "fraicheur": 5.7, "score": 5.8, "methode": "mots-clés", "resume_fr": "Bryant Lu de Ronald Lu & Partners explique comment l'IA transforme l'architecture Tatler Asia"}, {"date_collecte": "2026-10-15", "date_pub": "2026-09-25", "source": "arXiv (IA x construction)", "titre": "Modeling and Generative-AI-Based Design of Load-Adaptive Gravity Balancing Mechanisms", "lien": "https://arxiv.org/abs/2609.31386v1", "phase": "Conception", "trl": 3.0, "impact": 6.0, "pertinence": 5.0, "fiabilite": 8.0, "fraicheur": 3.7, "score": 5.4, "methode": "LLM", "resume_fr": "Cette étude propose une méthodologie de conception basée sur l'IA générative pour créer des mécanismes d'équilibrage de gravité adaptatifs aux charges. En utilisant des fonctions de potentiel comme représentation intermédiaire, le cadre génère des candidats de conception réalisables sans architecture préalable."}];
+    const REJETS = [{"titre": "Now That Information Is Free, What’s a College Campus For?", "source": "Common Edge", "lien": "https://commonedge.org/now-that-information-is-free-whats-a-college-campus-for/", "raison": "lien déjà connu"}, {"titre": "VisionWave Advances Stratum AI, an Agentic AI Architecture for Autonomous Mission Intelligence and Orchestration - AiThority", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxNdTQwaGVOT0dBTXowQVVXa0FzaTdvbnI3U0FIa0FPUVpMRkRBX0s2N2xIMTVNVm1ETzJiMDN6UnJZa2ZDR1l5ZjBXYkZGYTRPRFc0ZU5EVkVkZUxhZV9WcUZlVmdSWmdYNHdTUFJRM0VudnFTNEl5d1pNa2tTd3J5bnZ4Z0xwbzdIMFMzbW1leXdZXzZXUUdHTnAtVkRHYlFHdXkxU0VBdXdmTjcwN1ZKNVlncVJYZzFFZDhkYTBvVk1KQW9yeWF3QUpGejk5eGNiQjVJWmFVRFNfN2o1bXpyaHdHOW11QQ?oc=5", "raison": "même sens (0.95)"}, {"titre": "AI for architecture: an architect increases their productivity by 80% and frees up a day of work per week - Demócrata", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi7gFBVV95cUxNMWRZVERtR1JqUzJjZ2NyRVpUOVhza2V6SFdHY2FyUU5kemE2Wm5DVVE3bjF5Y1dBZ3R6TDQ5Y01la3NkWE1uZ0NnOGMwVno3NWdhY1BkSkc2d24tQ1pMWEYwV0FCNmNDa1dsQmllOENZN250TEhMVWdGcFJSNVR4REl5clZteFkwTGl4VTlWc0Z0SGwwa1ZHZTFkczBEWWVjMEMxSVhkRElVbjFkTXFNOVQtUUUybUVTMHkxUlVuNDVld2RJZjIwTVRPcXB5NHJwbVJGdHl0bWJaRmpncFU5R3FQZDNscjI3SDZGS1hB0gHzAUFVX3lxTE9IYU03bW9tejhEQjltRUYwSlFPRjFLS1IyYUp5a2RSYTZaQ2xrTDh6b2RfV3M2d1lzSlBNZFN2VnA3Wmk1VC1BNkhMWktETUhPYXJqWDJxQzRzYVY0eXhKVnRiSmhfWjljdUpYZkstZHV6UW84SklXaWRnd0kxQmdjQlg0dG9ZOWZmMHYtd0QzM0Z2U0Z5eGVGTkpWLXhQNkl3Yk8yQ3lKVm84c1R0VGJ3bEp2S2xCaTZ1WDAzaENSMkw4YkVGdFpuSFlRQlZmek1hZlZ3UVpWc2d5cldzOUtfa1NCNGZZN09DZ1JEeWlGSFp1Zw?oc=5", "raison": "même sens (0.98)"}, {"titre": "Guardrails, safe architecture key to unlocking AI gains for enterprises: Airtel Business CEO - Livemint", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi3wFBVV95cUxOb0FMbmJsVFJmWjFzRi1EQjc2Rld2SXUxMFladFVrLTRGVXpHQWhzS3dzUDRCVFh0YUtUaVhzSGNBcHloNTlYb1hlYnZPcDNoSmhlTnUtSTl6N3pkdlVnaldVdkhnUUJLdENRRGxoQTFZZkcxeVBuZW9kYlhERldZNy13M0hwRzd5QjY2ejRQWl9FaWNodno2N25PdjhySUlJdjU3cmRLZG43Ml9ueUFfZXMzekJyai10VTluVXVsQXdYbVNmRU5sT2kzTWp0d01qTHJqUHpzSmxmLVU4SWdR0gHkAUFVX3lxTFBPLUp6dk1kcEhYRnJDZW55Q1cwZWdZYXZoenpSLUJzV1NkQ2daN25QeC1Ybzh3RzV5RWdDRW9zRVlwMDAzMjMyR2Z4aU9ZMmxLbllrVHlzc3I3MDRKa3JRUjlneVpibkRxZzFqbXNzOWd5WUZ4WmlQbkVOUU9McmlEUFJMeVNIbzFqNUs4a1Y5Nk5MOXZXRURqZHlEV2lBczB0YkxZNnh1RWRVQTc1VEZUMEk5YUgxWGFZTFRYN1dQUFM4NkIyVk8za0Rlbk9Wc2JfRGNWWFhmNkFfYWVjaHM1TUpXbQ?oc=5", "raison": "même sens (0.98)"}, {"titre": "VisionWave Holdings, Inc. fait progresser Stratum AI, une architecture d’intelligence artificielle agentique destinée au renseignement et à l’orchestration autonomes des missions - Zonebourse", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi7gFBVV95cUxNZnhHbUZ0MUhvZFhWaGR4UGV4VWJqSDMydmltRDU1eWNpcXlwY2NzaXhVNzJfbGxDclBCSGxlN0RyTmVadUlyeXkxY3BjUFVoNHUxOGxhWnpTVzZ1aDB5TnhBQkV2Y2N1NW55VzZJY0ZzdWxoc1pRcnRKSkRkMTl2b2lkTFRtYk5yb2xXVE40amw2UTk3ZkVGcUxtbUZiTnlFX2dXZlByNVlsSE0yRzM5dHpkcnN3ZHUyRnlpaE1CQ2JidkRSZk85b2dkU3ZHdzBXSkxXWXNHX3pUblQzY0luQ2Rja3NIWWZQd0lDZkNn?oc=5", "raison": "jugé hors sujet par le LLM : L'article concerne l'intelligence artificielle pour le renseignement et l'orchestration militaire ou générale, et non pour le secteur du BTP."}, {"titre": "Thales dévoile une nouvelle architecture de cyberdéfense face aux attaques dopées à l'IA - Distributique", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi3gFBVV95cUxObl9XR2YwQjFOdHJCeEItNVZQUEJRb19MTFJaWlVVNWlydlRUd052Uml2Y05Vak56empPQjIxVE9lbWRMWENUSTZwUU5zS1RZWVRQaHEzSHFLbEdmMjR2dlNUYmlWaVlkNmVBU3pHREdkN1RjTDFqSUJWU3hieHptYldWY2NTQXBSekpRS05ZeDlWSnN1ZGIzeEkydUJXYlA1c0hYSlZlZVFUQzNfa0pxd2hiNkp5dTdfMVEtUkxocGI1RGVNZnVLdnU2NkhlNTBqSmVCWVV2UjRQczhGb3c?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite de cyberdéfense générale et non d'intelligence artificielle appliquée spécifiquement à l'architecture, la construction ou le BTP."}, {"titre": "IA générative dans l’assurance : et si le vrai chantier était organisationnel ? - La Tribune de l'Assurance", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxOSUh6MHR5VmxJdkxPbUlxQU1CNU1xZ0RDLWxBWVJnU3pWU0RLT2xtb2tQR1dUTE9FcFZRVk1YTHF1R1hKb0lMbzNveE1rSDNqOTg5V1ZOUTBVY3BCbDFpUHdfTnBPcjNXZ3B0aUVZZWhzd3NwM2JGQ2cwS3VqS2hhaWZpT09wUFhncU1icERjT2xjZGVLbWwzdEZoQkZnS1lNSS1tX3hJdGNZem9ZYU1BNHVOejY2MFdXcjZyZUxqYVNTU1lsZ2dOVjJubFN1TTVnM3NGSA?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite de l'IA générative dans le secteur de l'assurance et non du BTP."}, {"titre": "A Marseille, Fayat Bâtiment construira Theodora, un campus IA de 35 000 m² à 111 M€ pour Unitel Smart Building - Le Moniteur", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMihAJBVV95cUxOMlhfWnlERG1PWmwyQ3k1RVZ2dXl2OHR2akt6TFNyZE85WXZVcmhNYnJfcHBHd0docDZtS3B5MDlESEpoN1RlYmh5MFZLUnY2UDJfYVBpeDVhTkdWdGRNdTZMcmN2MmtKZ2hsWjZqRk1EQ2JYVkwwRkRGVjZWQlZaUS1zUWtmT29LcUFZNWtxN2FCbmVxVHJkT01aNGh6TDBTQ1BmejJEVWF4bUZtRnpsWGVtTk8wWFR6RExwY05ValEtcldzZFVtUGZsTkk0bm9waThTdWdfQUtEaWlQRjd3emVQbXc3OWFqaUZQcWdGcTk0UXJEdGZwLUFCdldPdjJncHJPRw?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite d'un projet immobilier (un campus pour l'IA) et non de l'utilisation de l'intelligence artificielle dans les processus du BTP."}, {"titre": "Dr Nguyen Van Mui, Université Gia Dinh : « L’avenir de l’enseignement supérieur ne réside pas dans l’ajout de l’IA, mais dans la construction d’une nouvelle architecture. » - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi5gFBVV95cUxPUlRHN094NG1UWnVtV1c0VFNKT3drREdhSU5TTFpnS2lQQXJ0MHVIMzZxZEk3T1lJajhVS0F1UUYyRWlIdjBxejlEOVV2LThlZERIcm5ldXRaVkNOamtaRWpqUkJibGtTeVl1ZnV6YnA3ZTNOUS1GeVZuaGRZRVBYaTZxbVVEaXJuVmNIYjF6bG5TZWxPVWlYWGFiSGFQQ2RzbERkajF4Vmp6QUhTY1VvYzUybFdLN3hsY0JwMUJ3SlF0aFNwQnBkVmpfTXF1UlptY0oxSHZFdncxMnlaLWxlVU4tV0tXUQ?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite de l'architecture organisationnelle de l'enseignement supérieur face à l'IA, et non du secteur du BTP."}, {"titre": "Intel dévoile de nouvelles configurations de GPU IA utilisant l'architecture Xe3P. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMihgFBVV95cUxPWFNuV0JUNFJVMWJjdVhxd0IyaFhNYXJRWVNoLXV1aW83VkdDQ1N5TG00R0JiTjZfQi1JajVtN0QxWnNEU0pfTGhEMTRiUmM2WjBsbmxRdE9LQjJRaVF6TWpMazhyaXpYdDVrbGZRaFByaWtWaFcwNzVtZTF2cldpVG5CS3dxQQ?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite de composants matériels informatiques (GPU Intel) sans lien direct avec une application concrète dans l'architecture ou le BTP."}, {"titre": "Substrate AI présentera en Grèce une architecture qui intègre l'IA dans la couche d'exécution du logiciel - Demócrata", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxNVXFwdFdrV0xZZy0tNE1KOU9LS3hHTkNCVGR3WGpFWkNGY0tiUWZHLW92NHNsZjl5NEhxQnk5amE5SlRqYUM5MlRoUnh6Mmc0S0FnVzROTEs3RzBla3RJMW5xaWVseDU3ckFTVFlPdms2NU1VWjVyYkRhYTFoZEFWZFZybVFsWWRTaGJLamNXS01zUjRaTUtHbzkyTGlVajE1SlpaYlZUanBkN3dseHQ1RzhodWxHWXZRYlJoWVRjZlJxbHR2VnJRdkpNa2RPVFVZREJjd1p5dmF4N0XSAeABQVVfeXFMTXlxeG1DSS12SUxoNFVHN2dOUkwyelo3LWowZkg5NzZzNkZVU25LU2JaQnFsekVieXphOU5lM25SRmZoSmZLZVJqUEdsaEowUWI4aFJKQXYtUkVMYzQtWXVDMzAxZHF3eWU0OGRnbXZNSmhIRUJIRjJrM1NqY3BOLWtEem5LdFAxbnUzMTJIdFVqRjl1NDlpSlFXZ0VqS3p4UTJ0SEdYWTFfMVM5QU1uMWg4LUkxaTFxQ29XM3FJRWE0aVd2WnNQYnJjX0ctY1FZeEZEaldxNjlkdGdTS2R5U2g?oc=5", "raison": "jugé hors sujet par le LLM : L'article concerne l'informatique générale et le logiciel, sans application directe avérée au secteur du BTP."}, {"titre": "MSI Prestige N16 Flip AI+ : Une avancée majeure grâce à l'architecture NVIDIA RTX Spark et ses 128 Go de RAM unifiée. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMisgFBVV95cUxPR3ptWmswSnN6Qk1GQkhpWS1Cc1BfLVVyNUxyMFdqbE4tVVJ6X2ptdXktUmVmaC1KWXo2SDhPd0Z6aS1jWFhzOWtyNExqUmtVWHNUV2FnUDRDM0tuTE0tVkZpbXdWZUR0UmxxbTBONU9KdU1lOS01Y3ZteUtoOVZobW12NmVwZU1PYzlNdW5JRjFnZ2FaWE15bncyMlNSc0QxMU4wOHBNRmlBWFVtNVpRNkhn?oc=5", "raison": "jugé hors sujet par le LLM : L'article concerne un ordinateur portable grand public et non une application concrète de l'IA dans le BTP."}, {"titre": "The Netherlands is developing NEXUS, an artificial intelligence architecture designed to coordinate radars, sensors and interceptor drones - Ejércitos", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi-gFBVV95cUxPS2x6QXYwVDdyb1lKclpHUlh1c1JONUlkTUo5b0Y2RXZud0ZhMFpmRWNzVEEyZDlwZXFGRTQzeExDTHNpREdjR0l6Yk1CWncwdmd3MXlpLTVQaWRITkZZNVp3Q1RncW1FNWRmQW9GN0VhUWZUOGl3SlJ4WUZTQlViWUVMT0tnNlg1elVXQjJmc0FrMWgwb0NnVUwxaFFJc2NUOUI2YWVUMFVaSHNodHBnVDVITlB6dktZQTRlT1k2bzQ0SmZLZW9sYmc4WHVtLUotaWVwR3VQaVpacTdLdFkzOE5nbTlXaWRjd0s3OWJueXRMVEZRTmt4UnRn?oc=5", "raison": "jugé hors sujet par le LLM : L'article concerne un système militaire de défense anti-drones et non le secteur du BTP."}, {"titre": "Is your architecture preventing you from calculating AI value? - CIO", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMipAFBVV95cUxQYU04WlpUYjlVWlpuV2FtMU1HSFp5ZzZBWUtxYzdRYmdKS0ZFTnFxMHBHTVBNQ2tXMGswdGFrd0cybXVQUGcxMEJzeHBUc3NaYzNMYXNSRHRtOEpuUmdiaHFUSFFsdTVUbkoyc0VlWE5Wbzc3RjNTVERNNW1laEFlR2oxSXJGT1VGXzhUY1hWckF2REVjY1B5d2JrX3B4VTB4QWV3aQ?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite de l'architecture informatique d'entreprise et non de l'architecture ou de la construction BTP."}, {"titre": "Guardrails, safe architecture key to unlocking AI gains for enterprises: Airtel Business CEO - People Matters - HR News", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi6wFBVV95cUxOemFfa1RvUGR0XzlTMWhjRmlZSGN3alozbUQ4enhmSzJMY2U0aDhjUDZSWkZ3ZjJEVG05SVBWd1FCMGh0OW1WX3Y5Y3U3T1RjczlZVlNjN3RPcXlvcHlNbWRlUks2dFozZGE4Vk1rSVo3MjdjaXA3UkxET1RvMGsxcThldXpGLUNkblNZQVlHT3RMcEM4WEh3b0wxQmpPc2E1ekxZa0VqQlJBaUJmN05OaG9PNnBCNXZCOF9XSWJUSnl3VVR3STVsaWdGUTA2OTJZd2xlZWFQX0FWQVZuOUtuRFd4a0FBSDBFbVBF?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite de la sécurité de l'IA et de l'architecture logicielle pour les entreprises en général, sans lien avec le BTP."}, {"titre": "China is rapidly expanding its artificial intelligence infrastructure - News of Bahrain", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxNZzdVSVBqY3l4bzVTWW9SY3oybjNhbGZNTkR2bUZQaVJRbVpxX3ZDNmwxYkc1NnI4WDVtYi1mWTlxWmZSNmlmTFY1SENzMjZRQmlaWDdlWHUyc21MWElWX19zV0dMbDJhaTI1a3ZyQ3VGbk5ReEc3Q3VXM1A3dFI3c05BNHB3UEJYa05R?oc=5", "raison": "jugé hors sujet par le LLM : L'article traite de l'infrastructure globale de l'IA en Chine et non de son application au secteur du BTP."}, {"titre": "IMC 2026: Qualcomm Demonstrates ‘Connectivity Plus Compute’ Architecture for Agentic AI - FoneArena.com", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxPc2NjZ2JtU290YTBIVlJwLVdaMmR0NkFMOTduT3ZOVXRYU3Z5N05vUk5XdUpQUjNPM3daV28xcHJSRGR5d0tWUVZySDc3MWVsakxHaVNqVlBLTU5mcHN3TXpMemVkN3p4Y25XVy11ekNaajZnUmVfM1pYYXVscUY2OTd6T0ZfZjY0eVNv0gGQAUFVX3lxTFBOcmpyV3dJN3RpbWRYYXhMVVJseXdQeGs2elpwWThUSkNaYnphQ2VZemk0cHFXYS15eU1kMXdycjhYaGUtZWNWQmFDU3dpbWpncllHd2dMWmhUcHBEM3hLYUpVX0Q0NWVZMXU0UkFqVGZKN1A0akZmTXFOTzlNbFpSLUo5SDBhVE50ZzJLcm8xdw?oc=5", "raison": "jugé hors sujet par le LLM : L'article concerne l'architecture de puces pour l'IA agentique par Qualcomm (électronique grand public/télécoms), sans lien direct avec le secteur du BTP ou de la construction."}, {"titre": "Localized Generative Design of Ship Hulls with Diffusion Models and High-Fidelity Assessment", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.12870v1", "raison": "jugé hors sujet par le LLM : L'article concerne la conception de coques de navires (construction navale) et non le BTP ou l'architecture."}, {"titre": "Digital Twin for Pre-Deployment Validation of AI-Driven Safety-Critical Industrial Edge Control Loops", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.11934v1", "raison": "jugé hors sujet par le LLM : L'article traite de l'industrie manufacturière et de la robotique mobile (AGV/AMR) en milieu industriel général, sans application directe au BTP ou à la construction."}, {"titre": "TRACE: Learning to Self-Calibrate Wireless Digital Twins from ISAC Measurements", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2609.32923v2", "raison": "jugé hors sujet par le LLM : L'article traite de l'étalonnage de jumeaux numériques sans fil (réseaux télécoms/RF) et non de l'IA appliquée à la construction, l'architecture ou la gestion de chantier du BTP."}, {"titre": "Matterport embraces point clouds", "source": "AEC Magazine", "lien": "https://aecmag.com/reality-capture-modelling/matterport-embraces-point-clouds/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "IES Sync for Revit launches", "source": "AEC Magazine", "lien": "https://aecmag.com/sustainability/ies-sync-for-revit-launches/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Hexagon to acquire Rocscience for $535m", "source": "AEC Magazine", "lien": "https://aecmag.com/news/hexagon-to-acquire-rocscience-for-535m/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Graphisoft unveils Archicad 30 and shares AI roadmap", "source": "AEC Magazine", "lien": "https://aecmag.com/bim/graphisoft-unveils-archicad-30-and-shares-ai-roadmap/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Pirros adds AI-powered QA/QC to its Revit-centric platform", "source": "AEC Magazine", "lien": "https://aecmag.com/bim/pirros-adds-ai-powered-qa-qc-to-its-revit-centric-platform/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Faro launches Focus i.1 laser scanners", "source": "AEC Magazine", "lien": "https://aecmag.com/reality-capture-modelling/faro-launches-focus-i-1-laser-scanners/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Buildcheck raises $12m in Series A", "source": "AEC Magazine", "lien": "https://aecmag.com/construction/buildcheck-raises-12m-in-series-a/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Formas.AI unveils native agentic 3D modeller", "source": "AEC Magazine", "lien": "https://aecmag.com/cad/formas-ai-unveils-native-agentic-3d-modeller/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "XGrids unveils Lixel L3 spatial scanner", "source": "AEC Magazine", "lien": "https://aecmag.com/reality-capture-modelling/xgrids-unveils-lixel-l3-spatial-scanner/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Vectorworks 2027 targets real-world workflows", "source": "AEC Magazine", "lien": "https://aecmag.com/bim/vectorworks-2027-targets-real-world-workflows/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Cupix moves beyond construction into operations", "source": "AEC Magazine", "lien": "https://aecmag.com/reality-capture-modelling/cupix-moves-beyond-construction-into-operations/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Lumion launches Axogram for architectural diagramming", "source": "AEC Magazine", "lien": "https://aecmag.com/visualisation/lumion-launches-axogram-for-architectural-diagramming/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Kora Studio 1.0 launches for façade design", "source": "AEC Magazine", "lien": "https://aecmag.com/bim/kora-studio-1-0-launches-for-facade-design/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "OpenSpace AI to help firms make faster decisions on site", "source": "AEC Magazine", "lien": "https://aecmag.com/reality-capture-modelling/openspace-ai-to-help-firms-make-faster-decisions-on-site/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Autodesk confirms Forma will replace Revit ‘over time’", "source": "AEC Magazine", "lien": "https://aecmag.com/bim/autodesk-confirms-forma-will-replace-revit-over-time/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Endra’s AI turns a week of design into hours", "source": "AEC Magazine", "lien": "https://aecmag.com/mep/endras-ai-turns-a-week-of-design-into-hours/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Maxon automates Cinema 4D with MCP Server", "source": "AEC Magazine", "lien": "https://aecmag.com/visualisation/maxon-automates-cinema-4d-with-mcp-server/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "AMD to buy World Labs for $8.2bn", "source": "AEC Magazine", "lien": "https://aecmag.com/geospatial/amd-to-buy-world-labs-for-8-2bn/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Rayon raises €10m for 3D and agentic AI", "source": "AEC Magazine", "lien": "https://aecmag.com/cad/rayon-raises-e10m-for-3d-and-agentic-ai/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Meta unveils lightweight VR Glasses", "source": "AEC Magazine", "lien": "https://aecmag.com/vr-mr/meta-unveils-lightweight-vr-glasses/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Endra launches electrical design platform and buys Planlabs", "source": "AEC Magazine", "lien": "https://aecmag.com/mep/endra-launches-electrical-design-platform-and-buys-planlabs/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "HP ZBook Ultra G3a brings local AI to Revit", "source": "AEC Magazine", "lien": "https://aecmag.com/workstations/hp-zbook-ultra-g3a-brings-local-ai-to-revit/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Why a Renda 4U Server might be right for your business", "source": "AEC Magazine", "lien": "https://aecmag.com/sponsored-content/why-a-renda-4u-server-might-be-right-for-your-business/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Autodesk extends reach of AI with standalone Assistant", "source": "AEC Magazine", "lien": "https://aecmag.com/ai/autodesk-extends-reach-of-ai-with-standalone-assistant/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Autodesk puts updated AI Transparency Cards inside Assistant", "source": "AEC Magazine", "lien": "https://aecmag.com/ai/autodesk-puts-updated-ai-transparency-cards-inside-assistant/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Autodesk pushes Forma upstream and connects Civil 3D", "source": "AEC Magazine", "lien": "https://aecmag.com/civil-engineering/autodesk-pushes-forma-upstream-and-connects-civil-3d/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Anagnost pitches ‘project intelligence’ across Autodesk", "source": "AEC Magazine", "lien": "https://aecmag.com/ai/anagnost-pitches-project-intelligence-across-autodesk/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "HP improves automation in SitePrint and Build Workspace", "source": "AEC Magazine", "lien": "https://aecmag.com/construction/hp-improves-automation-in-siteprint-and-build-workspace/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "vBrief aims to take control of project information", "source": "AEC Magazine", "lien": "https://aecmag.com/data-management/vbrief-aims-to-take-control-of-project-information/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Roofer sues after allegedly being told ‘no one pays overtime in construction work’", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/roofer-sues-after-allegedly-being-told-no-one-pays-overtime-in-constructio/833002/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "3D-printing giant Icon raises $200M", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/3d-printing-giant-icon-raises-funding/833001/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Contractors’ backlog jumped in September as profit outlook fell", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/contractors-backlog-jumped-september-profit-outlook-fell/832949/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "‘I’ve lived it’: How HITT’s CEO brings trade experience to her role", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/hitt-contracting-ceo-kim-roy-data-centers-labor/832938/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "DOT moves ahead on effort to tie new construction funds to marriage, birth rates", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/dot-funding-construction-marriage-birth-rates/832874/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "3 transit leaders explain how they fund major projects", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/apta-conference-chicago-seattle-nyc-funding/832868/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Borrowing costs still too low to cool inflation, economists say in survey", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/borrowing-costs-low-cool-inflation-economists-say-survey-GDP-economy-ai/832831/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Northrop Grumman, Air Force start on $4.5B expansion", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/northrop-grumman-air-force-expansion-plant-42/832833/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "3 economic factors determining construction’s winners and losers: ABC", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/constructions-winners-losers-drift-farther-apart/832780/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "DPR breaks ground on $230M Kaiser Permanente project in Colorado", "source": "Construction Dive", "lien": "https://www.constructiondive.com/news/dpr-breaks-ground-kaiser-permanente-project-colorado/832793/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Brumadinho Memorial / Gustavo Penna Arquiteto e Associados", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186835/brumadinho-memorial-gustavo-penna-arquiteto-e-associados", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Casa Emilio Delporte / Citic", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186768/casa-emilio-delporte-citic", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Padre Luís Cabral Building / Hori-zonte", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186822/padre-luis-cabral-building-hori-zonte", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Wild Pond Villa / L. McComber", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186824/wild-pond-villa-l-mccomber", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Wilnsdorf Primary School and Sports Hall / BUERO BB", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186599/wilnsdorf-primary-school-and-sports-hall-buero-bb", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Architecture & Design Film Festival (ADFF): Toronto", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186781/architecture-and-design-film-festival-adff-toronto", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Learning Through Practice: Why Architecture Students Enter Competitions", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186680/learning-through-practice-why-architecture-students-enter-competitions", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Cabin Ostøya / R21 Arkitekter", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186290/cabin-ostoya-r21-arkitekter", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Geometry that Generates Energy: The Solar Facade of Breidablikk Gården, Norway", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186285/geometry-that-generates-energy-the-solar-facade-of-breidablikk-garden-norway", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Brazil in Focus: This Month in Architecture, Housing, Learning Spaces, and Urban Life", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186807/brazil-in-focus-this-month-in-architecture-housing-learning-spaces-and-urban-life", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "House by the Vineyard / ARCHITEKTI mikulaj & mikulajova", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186470/house-by-the-vineyard-architekti-mikulaj-and-mikulajova", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Sir Donald Insall, Architect and Figure in Modern Architectural Conservation, Passes Away at 100", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186771/sir-donald-insall-architect-and-figure-in-modern-architectural-conservation-passes-away-at-100", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Beyond the Box: What Shipping Container Architecture Gets Right and Where It Falls Short", "source": "ArchDaily", "lien": "https://www.archdaily.com/1185946/beyond-the-box-what-shipping-container-architecture-gets-right-and-where-it-falls-short", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Making Room for Water: Floodable Parks in Latin America", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186646/making-room-for-water-floodable-parks-in-latin-america", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Middle Envelope Apartment / CROSSARCHITECTURE / Mehrdad Makaremi", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186431/middle-envelope-apartment-crossarchitecture-mehrdad-makaremi", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Landing Bakery / FIVE MILE RADIUS", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186208/landing-bakery-five-mile-radius", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Shanghai Science and Technology Investment Tower Mixed-Use Development / NBBJ", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186717/shanghai-science-and-technology-investment-tower-mixed-use-development-nbbj", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "PH Dickman / PH TIPO CASA", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186772/ph-dickman-ph-tipo-casa", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Main House / messina | rivas", "source": "ArchDaily", "lien": "https://www.archdaily.com/1034259/house-sede-messina-rivas", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "KatNap House / Nutum Estudio", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186760/katnap-house-nutum-estudio", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Coral House / Sidney Quintela Architecture + Urban Planning", "source": "ArchDaily", "lien": "https://www.archdaily.com/1032794/coral-house-sidney-quintela-architecture-plus-urban-planning", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "AXE / GENS", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186224/axe-gens", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Urban Agoras: How Skateparks Can Give Public Space Back to the City", "source": "ArchDaily", "lien": "https://www.archdaily.com/1036121/rethinking-public-space-through-a-skateboarders-eyes", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Jihlava Municipal Arena / CHYBÍK + KRIŠTOF", "source": "ArchDaily", "lien": "https://www.archdaily.com/1186100/jihlava-municipal-arena-chybik-plus-kristof", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Recipients of 2026 Atlantic Architectural Design Excellence Awards announced", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/recipients-of-2026-atlantic-architectural-design-excellence-awards-announced/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "City of Toronto and DIALOG announce Western Beaches Public Realm Plan", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/dialog-and-city-of-toronto-announce-western-beaches-public-realm-plan/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Polaris Project at Yukon University achieves region’s first Zero Carbon Building Design certification", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/polaris-project-at-yukon-university-achieves-regions-first-zero-carbon-building-design-certification/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Architecture firms announce staff promotions, appointments, and mergers", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/architecture-firms-announce-staff-promotions-appointments-and-mergers/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "RAIC releases national survey report on buy Canadian and built environment", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/raic-releases-national-survey-report-on-buy-canadian-and-built-environment/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "37th edition of Tournoi de golf des architectes du Québec raises $50,000", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/37th-edition-of-tournoi-de-golf-des-architectes-du-quebec-raises-50000/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Cree artist Kent Monkman’s first public artwork now open at Lassonde Art Trail", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/cree-artist-kent-monkmans-first-public-artwork-now-open-at-lassonde-art-trail/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "2026 Margolese Prize winners announced", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/2026-margolese-prize-winners-announced/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Submissions now open for 2026 AFBC Architectural Achievement Awards", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/submissions-now-open-for-2026-afbc-architectural-achievement-awards/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "CCA announces program to mark Phyllis Lambert’s 100th birthday", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/cca-announces-program-to-mark-phyllis-lamberts-100th-birthday/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Quality in Canada’s Built Environment – A Calgary Perspective", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/quality-in-canadas-built-environment-a-calgary-perspective/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Editorial: Cultural Gifts", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/editorial-cultural-gifts/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Grounded in Nature: Indigenous House, University of Toronto Scarborough Campus", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/grounded-in-nature-indigenous-house-university-of-toronto-scarborough-campus/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Immersive Learning: Whiteshell Natural History Museum, Nutimik Lake, Manitoba", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/immersive-learning-whiteshell-natural-history-museum-nutimik-lake-manitoba/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Library Renewal: Bibliothèque Gabrielle-Roy, Quebec City, Quebec", "source": "Canadian Architect", "lien": "https://canadianarchitect.com/library-renewal-bibliotheque-gabrielle-roy-quebec-city-quebec/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "The Educational Value of Drawing Sets", "source": "Common Edge", "lien": "https://commonedge.org/the-educational-value-of-drawing-sets/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Ignoring the Climate Challenge Is Not an Option", "source": "Common Edge", "lien": "https://commonedge.org/ignoring-the-climate-challenge-is-not-an-option/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Can NYC’s “Fast-Track” Community Districts Really Produce More Housing?", "source": "Common Edge", "lien": "https://commonedge.org/can-nycs-fast-track-community-districts-really-produce-more-housing/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Who Shapes the Territory? Or, Why Urban Planning Does Not Exist", "source": "Common Edge", "lien": "https://commonedge.org/who-shapes-the-territory-or-why-urban-planning-does-not-exist/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "The Urban Lens: “I Want to Show How Places Are Used”", "source": "Common Edge", "lien": "https://commonedge.org/the-urban-lens-i-want-to-show-how-places-are-used/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Chandigarh at 73: How a City Outgrew Its Utopia", "source": "Common Edge", "lien": "https://commonedge.org/chandigarh-at-73-how-a-city-outgrew-its-utopia/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Form Follows Feeling: My Catholic Aesthetic", "source": "Common Edge", "lien": "https://commonedge.org/form-follows-feeling-my-catholic-aesthetic/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "School’s in Session: What’s on Students’ Minds?", "source": "Common Edge", "lien": "https://commonedge.org/schools-in-session-whats-on-students-minds/", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Dans le secteur de la construction, l’intelligence artificielle apporte déjà de la valeur ajoutée mais n’est pas prête à remplacer l’humain - Le Moniteur", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMizgJBVV95cUxPNzdwT0kwNjFHRzdsWFI4Zi1wS2RiSE1XblotbWhKa2Z0Z29mVGcxYWgwLUNVM0szTzZQYTB4U1ExQy1OMTA2S1BTaW1NZE9hWXpyNlR0MWZ5ekdqbUlwVUI3STktWDQ3QnBJODZGcmtfVTFyNm83VDFSbEctaWd1aVc2T1ZzNnA2ZWxfYXQ1Y3VJaTNCTTkxVjUxWG1vTDZaLXNRRmZja0VPa3dPd1VKU3d4Q001bnU2QmhtQ1l0UkRhZlloMWVtemF4U0tROFc1VU1Vc2ltcHVSenZhSmJhQTV4MWwwd0ZaYk56UkpudGpaOE5pak1DWGVVNVpoNmJHaTFzYUctV1EySDZrU01FSkhZZlJGUHV0MEpaWmphZFZNbDBIRUR2WG5lcjNaUS1RM21pWHViaEdlZjY2VHItODVZUTJWQlpzT043Zkh3?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "La chalonnaise Valérie Dennetière, décoratrice d’intérieur : l’intelligence artificielle bouscule-t-elle le métier ? - Info-Chalon.com", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi-wFBVV95cUxNZWc1VVc3S2VjcjRTYXlGcWFfVkpyUnlJTEFVWnVCNklzTnRPYTFMM2RkQVp1WVJpZUtlaHlCcXN2UTFQV2s3V1lRcGttNkliSXZ1aDVfSV9yRHdLN0RCWTVPODFRUDJDaGQ4R2dVQ1d1bmRBUVVJMk8xVnRuOXd4VlBUZDZfZVVFNXhKY1AyMUhlOE1QNTUtZTc4aXRkeWR4SHI3MEE4MzRuVUdLZ0NTckd5TmphbkZJTTRKblBhUFl1MGh2eEZvbk94M2ZsTUZhbWYzaE8wTDlBMThTWlNIckV1alBuQ212ay02QjYyWjB6X0xtNEphMFVyMA?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "kelvin° et e-btp s’associent pour accélérer la transformation numérique des entreprises de rénovation énergétique - www.constructionbtp.com", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi-wFBVV95cUxPSEhUdGtnTkhvb29USlJPR0dUd1RlZE5pdGtGYU56eWo0aGxBeEVLc0ZPV1JoZ0xvbVZkMHF5bnExZU1fcGMyanJad3ZZOWhuTDRQWTVOVUhaTW9hb0tPYWlPYlNkMlEzYWJtZFJkdlQtTWk5d0N4VE5vMXQ2QmJEMzh2WG1FQWQyWk1JVHptTHI4RURBdlh1cGlHMG1fdFFKb2U1Q2xfUEppdlNkRkVnblZUUzVfaEVER214SVVHZFFyV3RJSURtVnFlWGY2YkJDOXdEaHAzbktFYnQycHM5ODh1MU9ZTUdSd2x0bTQ1Z1ZEMTEzb19OTmZ3cw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Orange muscle son offre SecNumCloud pour les applications critiques et l’intelligence artificielle - L'Usine Digitale", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiigJBVV95cUxPMEZ5U0J1YnE4cjdGdkpkeTVBZW0xMWZTd21jbWlyNjhBVXlyT1Jlai1tOTc2bFAzWklyejBfc3BTMnJRZU9JS1ZhbFEyWXRHUndxTE5pRVE3OWdJZ2dHMHVZTGJTSGlMMFJuU1BHdnhIYXFJZm0tbmpCMENyUnlkT3g4X2hULTBITkhlMmFsMVo3TEt2d2RvblZtSnJiX3Z2Y1R1cFFYQ3VIMXVrNk9wUTUxWU9zWl95TVJQME9na19JZlZYSng3U0ppaWJHeHVyd19FQXNldzJRWTB5LWswMVFrcmt5TTRRNGxRY210ckdOZDhMNE9uTWpIbkhITGhvYTVmbkFwLXliUQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Un chercheur de Toulouse alerte sur les dérives des IA autonomes, mais selon lui \"le risque d’une intelligence artificielle qui provoquerait la fin de l’humanité n’est pas documenté\" - ladepeche.fr", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiogJBVV95cUxNXzh3aWNUMGJUUXliUHNRMUVyT0dlamd3Qk9OS2cxU1FqdDloSDRjZmJrRDVxcHZCa19vLTNEeTV2RldEMlZ0LWpEY3VUb0RvUWItT1hYT0JaT0FxNTd5SzlIalRxSW1adUNqNlN3MEVrZ09PLVBqMmZ1T3FFSE8zdHg5cjlXUG9CamF0bFdxc1Vqbzl5RDV0dWtlaEhqZUJ3V3BqcHVjRlhMZUpTYjNscVQtckV4S2NNU2xqNGNqaTZyM0FUVUdmTEdfSTJKOFFaS3FaR0NyX1U5TW1LbjNRa0NyX0RmXzJvb3hxVFV4RFVSSldPUXI4N3gyNnhIX09CUUZiczZCbEt0NExHa2RHN3BfS2J6bUpiS2xIbm91ekl4dw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "« Bâtis tes rêves ! » et BTP innov’ sont lancés - ECO Savoie Mont Blanc", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMieEFVX3lxTFA0eGV4eHdURVVXbXZXV1ZlNkV5S3ZFYnMteXpyN0tNWXJxY1M4RlVWcDFjdThVUGFzVUY5U0pKeEtSRFUtSkkzZklMT0hrXzA4Vl9zSzlFVUx0anV6dkluTGkyTUJZbU5ha0NqbVN0XzM1T3pXcXBJLQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "À Villeurbanne, le BTP mise sur l’immersion pour attirer les jeunes - Lyon Entreprises [LE]", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxQR1FvWTh2Mm9PWDBUWTB5elYzYWVlWnlOUGNSQ3dqUndXckdLdVVCQ2ZsSkpGRFpqU2ZSeVlqV1gtbDJwQ0xMSjFSa3ZWWGxOLTh3NTJDRGU5eFViLUIyaGZzR1kyekpjcVE4OF9nU0RLOW9ua1A1RHQzblZSbndUVml2eUpnclN6ajlzOWxqOWltRjdHVjBaWUsyMkswU2JBZzhBRFZXSUVhU1pEejA1UUMzYUhBRng2?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Starkey présente Omega AI+ : Donnez à vos patients un avantage auditif inédit. - Audiologie Demain", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMipwFBVV95cUxOUkUxaUt4SUNPTk1YNFpLWVFQODNsOHhmamk3UmwzTFRvaVE5SU1wTEl0SURJdVhVMEtnSE1xY0MyWG1nTm5LcXEwYTlDbll3RlNXSnBFLW5Qa2k3eWtkUWN4LUY0SGNIeE15QU5uVjVZanhNdjJuNlZGT3FBTTBPYncxTE9uVDBvMlJGUmJGM2t1TUgzZEFwMnk3Ti1pU2RFQlNqakFRZw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "BTP : pour recruter demain, la filière veut séduire les jeunes dès le CM1 - mesinfos", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMivgFBVV95cUxOOGdaZlFsSWhmLXNka0F3SkNHUEc3NzhGSGV6VGlYUVdfQkZxQmNZUkg0VnFiU2R4OVhEdmZNT0R5UE43QkhKTXc1LTlJODF5bFdYQktvTVJhLTFfcUlJZlVuRzdtWUQzeTlaSGxsWngtR0E2aGt5STJOTUV4Tms0dXZYcTF5Z2dqaGo4T2h2WVliZm1DTnFEOHN3N25VcWhTeFY4UE1fWld1dGJsQUtTa2pHN2NfY24xZ2pETDFR?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "« Qui veut transformer son entreprise ? » l'évènement de l'innovation dans le BTP revient - clermontinfos63.fr", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxQV2J5VnFWVmZJaGZQX01RUTFxdUU0c0szRjltbjRYeWEzS2s4aUhfRDJNLUFjeWhjU3hud05LQUswVFhpVjkwaGdtNTNfOXI4d3Z5Y3JERVBPd2NoM0xadEVJWWVfR2o5ckoxem9hVU95YUpqMThyZXE5dlV6UTRXd0h3N3dTV19iRjhWMUpscU5BTm1wVVd4dExpVVFkeDEyeHd6Y0lfbjBWU0lSUkFBZXo3OTRzaVZ6aV9fUzZYbHZqOUxNMXRiclFHTk9OMUln?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "[Tribune] L’ingénieur saura-t-il encore contredire la machine ? - www.constructionbtp.com", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMixAFBVV95cUxNbDh1X0pmdGJqeURhNkJZTXBvRG4wVThHTno3dk5BX3IwRFB1dmxKM210dzFVZnlmRFlxdlFBWXhLYWlYZE5pRUQ0UHZlZnAtckxWQk9sVVZINHUzYTN5SWViZ1laOXFUUi1JVDJTa2RlVDJFc0FIakh6OHN4aTRVQXV6RzBYdUMzVVFJRTJCaU5WTDFFRG55SUhCTDM5ZnlfaVlweTFVNktqT2NDb1B3ck52TG4zU083T09ROEY1QjFlaER6?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Advanced Micro Devices, Inc. présente le rack AMD Helion d’intelligence artificielle agentique - Zonebourse Suisse", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi6AFBVV95cUxOZDN5ckp2NlNsR29Bb3ZHLWY4NjN2U0t0UlNhRmJkV0tzbUIwc3RNWXV5cU9DVHlRdmpCM3A0Q1Y0ZkFDZXNjUmhERUNfMFN0cm96anV4TW1jb1dtRFlXMG11RXJORTE0NlRETVg1aXhYSUV1RGZ1V2wxbzFpdEJISXd2VmhaR1BkNk8wZGZOLXd2SERTWG9RckFSNzZvczZWY2NyWExkR0FmcWJ6VXdMX3BlS2MxRU1GZW5jeXpHRUVUNW4zNUl5LU9yZ2piT3liYnVDYTBLUG9lSFpiWDZiM1RJdW13NkFS?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "CCIR : dernière ligne droite avant la JIE autour de l'innovation dans le BTP et le transport - Imaz Press", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiZkFVX3lxTE1lRzlIUUNQb0FOUmhZNTlSMU1HU05qdlF0cS1zT2lkZWlrWFF3OWhSbF9NX0tDYnN5LXNRQUc0ZWRjcGZEYWctU0VLS2pBVnZWY1ZEOVFzMUw1YjJQM0l1cWhOSk5ndw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Dans le Sud-Manche, les drones et l’intelligence artificielle sont au chevet du réseau électrique - Ouest-France", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMikgJBVV95cUxObEwzSUNwM0ZhQW1ISGNfcjFPaHhGeUo0dkRtTC0tc0xDRTY5UHpxa0lOT0lQYl9pdWxEeFpsYzdsbFBydTdWazFKV0lXaV9rQk5haElzOHJ3WVVGbnlRWmJsT0xLeF81Y1hwU0x1ckFUN0FGM1hIZWZ2QXJrWnlaNzE3QzRWbnRLeU8yRzh4dllSX3JrSDZZamdNMWstWkduYVA4Z0k4OXMyell0dmZPZU9SU2NCejV2ZzExWFNVWDA3VlNWNExpRmFEVHZxQk1QS2lJZjc3dnN0RGxPREdrM0hWRkJOLVpxeU5UbUVYc24yQmNleXZPVlBqbHhuTDhkWjRGWnZ0NmdVNjZUQWRsb0p3?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Rencontre avec l'icône de l'architecture Norman Foster - saywhomedia.com", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMidkFVX3lxTE52UkNXNVBzYnFpS1dHODRtek82SzlwUHhjMzVJRnpJUVZXbWhJaWh0ajBPd3pDcHpYT3V4VDZwUW9RWk96cmFNME9HWmp1SFJ1ejByRFI5WUFyT2VTeVpDelRoN0ZOa1N6SklKT2s0Y3JuWDJfYVE?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Orléans : des collégiens découvrent les métiers du bâtiment au BTP-CFA - La République du Centre", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOcmpSdkxXZW9uSE1pUmN6YU4yWGpUMkpUQTZBM3p5eVFWN0NWRmI1ZjBSUUN2Zi1EX2dRYXJaWDJnbllONU9CUkJqc3ZLbHRObG5jMVZwUk1lX0tSLUFkUGFnX1l5LURsMlV5R3NxdUNFc1o5cEtWZDRMR0NxbUJNc2ZfU0QzYUY3QmJQMm5hcWhOQnd3RlppYWlFV1F0RkZiYkVkX3U0Sk5MTW5qQmpVUlc4b1NSM3RRTVRCeWctWWFCQQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Economie - À Marseille, Unitel Smart Building lance le chantier de Theodora dans le 14ème arrondissement - Petites Affiches", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMipgFBVV95cUxNRFNPaDM4Ulk0VVJONFI5ZzBTU056ZEpkZG1ieldUcjNpZnRIaTFSUUdnX2lUbzhyM3pFWmpYRUJxRm1MZGY1VzJ4V2JlUlpobmVuUEsxVUQxTlpwVDNLSkNhbUUyajI3cGpRdlB4ckZENXc3cU5vYV9ZTm1zR250dEdsUjVWWXJQcWVkUzAxUDJvekdJeGJ2aWc3RkZsc3VpWTJrUldR?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Gildas du Cleuziou, Golda : \"Le Golda doit devenir le partenaire digital de confiance de la filière\" - Le Journal du Poids Lourd", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi1AFBVV95cUxPT3RxUi14S1NiTTIzUy04N1VzYWRybzdCVUJVWk5rZ2lhaTZ0dDRqWUtEcXJWT09VaXh6dExORFZ3eXpmQm5LTVNxUTNLZ0RNMG1BV3E2TlhtZ1gybjBLRVZvVng2VzZsb3d6NDJlWFFHTHdJY0VHckFzR180ZXBRUVFVMnVPRTd4U2llN3p2a0FaNkc2aUxnbkt6dklTV0lVUzVEWmJWVUFhamtiTFhrWVc4eXdWd3BqTGlodXlEanJMMEJRZWJYT2xhZEtBZjFlTnB1Ng?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "5000€, c'est le prix moyen qu'il faut débourser pour profiter d'une intelligence artificielle directement sur votre PC personnel - JeuxVideo.com", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi_gFBVV95cUxNRmhnNFJ2Tm94R09QWjgxWTh4Sm5JVU95eHNNVjl3NV9meF9ONGN4cU5HblE5Z0FSdERxd0ZfemF6YzJxc1BqYWhwN0pLZ2hxd016c2lNR2l5eVBHLU1wZXBZNW1KVG1WYUdoVllPRGMwRnpfdG9MZWVqcXEyZWNfdzdoeXZyZVd3THc2dk9yVU9jdkVnSXFoSV9yQVQ2dG9KdTJEM3dyRmJtTlBwZkFCNXBlMEJ2Q3JtQi1JZUtJRHk1ZlVwd0QySUVQOWpPRnV5Nlc2aVlwY09Pak9aWnRNT3g3Y094UjlZODJhRHhmQWtWS2Z4RUl2V2NIU0ltdw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "L’aéroport international de Gia Binh, un projet d’infrastructure d’envergure nationale - lecourrier.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxPSW1iQWZfeTRydHZrSk9SSUJmNGdhenNySkVORm5PcmhNTm5BZklOY0wyVlgtczVpbGRaR0UwWmxqLWcyVC1hOVFSdGVuUUI2M3NvWnZYaVQ4VkMtMFZHMjlMNTNhaDVxTkZYZ3VXN2tveWprUy1aUHAzRDVXM0R2UVJUQUhad2lLU2E3a1hFaWlvcEZmNk5sTkdtSXZ2MEFpT0VXVUhoWDBpSDE4ZVVkaWFYM2xqS2lk?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "BMW va supprimer 20 % de ses postes de management d’ici 2027 - L'Auto-Journal", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMihgFBVV95cUxQeUc5TG1zb1ltajQ0Y0FFb2lidmx2NFlBdzJhWTFxaU4xbGJBelpPTjBjRTZhcUxfSzdBM09oN1BuTUphQWtrcERwUzY4QnYtT1hkTEJXQ2hnRktZTHdtNFdMZ0VNQVp6ZFpESWoxVGxoTm52R3EyVTVTalpGci1faTNfSk1ZQQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Patrick Thiberge, Meilleurtaux Placement : « Les revenus générés par nos programmes IA doivent dépasser les montants investis en un an - Option Finance", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMimAJBVV95cUxOODNDUFJPNll4NjB6aVpiWFQwY2xzMlhlVU5udG0yUlY2X0lpUnlrRE1UZjl2Tk15RXhuT2psd1hUaC02LXF2dnNZbEltRXhlamFoODZzYndhcTc5SG14cUFZMVN1WGlHQncyWTktUDRMcWJZTXc5dzRmV3UtVXdUbkRXTEJjV191b3VXMWdmbW5TeV96b0R6ZU4wV3phcE91dUZZOTZZdVlYSlc5bzVtLVB4ZjZwUjhIY3BMUTdZWFNKOG5DRlN6c2ZkMFFJR3ZFUVZiaUV3WUo0RVY4UG9ySTlOQU56RE0wRjRCV2Y0Tnh5cFR1UDRNZmRMSjBydFBJbXQ2LUwzRWFSRUJCdjlNdkVXQ3ByTUpj?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Architecture : le poète intemporel - Chroniques d‘architecture", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMieEFVX3lxTE5UbXhaTEluZXR3a3NBeDRKenBpTFFPWUxBOW15MTJRNnZpVlJhVjFjR2FibTQ1MkNMcVB3T0N1UkZNRDJrUjBuYl82TUZHMU04d0tzd0dnWDlGYTdQMjJiQmNFRnFkdTZCeEtGaTdaMUU5Um96c2Y3cw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Microsoft Maia 300 : la nouvelle puce IA qui défie Nvidia - BlogNT", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMikAFBVV95cUxOSlMyR1F0WEd5azRKUHJGT3hDU0VTR1l6MHRYbHI0UmM4QVJMYkxXa1pUdTJRR1QtZGVYRVdyZ3lUa2h4SDZPRC13TnJ3MnU3dmFNRHJwNDAwbVhRZjd6NGNWT3cybE1HYnpNOUdKbWdxV19EaUlhN3VzbjUxSzEzTXNmNnVnQ0Y5ekdfdWxHZEo?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Sous-traitant BTP impayé : action directe contre le maître de l’ouvrage, caution et délégation pour obtenir paiement - Kohen Avocats", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQd3B2T0VVUXdEb3RWR0pjdGpGYjFSRGRWaFZ4RGlYLTRsSXJPZ0hqbmNnV0lOdzR3QWNfTURDWDMycmxMMlZRdWU2Y1BKWlJjM0JHQXVxeXVvZ09TZkp5YTV3YVljUXV0LXBrRzRmVS1oZEJiSnJYdTkwUElXSlZQekJKT2RuQVlKQW9fdHJNUmRuWTZxbWhyYS1sVnUwclk3RlBPa0lTSndsX3dCUW5tNWp3?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "L'École d'architecture de Kharkiv recherche des chercheurs pour une conférence sur l'avenir du logement - pragmatika.media", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxQRGtVelJCR0RXcmhyMVRueHNydGx4cVI4OU9UQVJ4RVp6YWVsNkdKRmxFYVBncW5IYVdtLUp2a1dROE8yaHlDVU1EQ2w1NVE5dkU0YWNBZ2NLX0owUDkwd19xRzZqbC1qQ09tOVZ5OVdqWWl5ZFAzN3hHZ3VtUGF3dVJ2akZsUFNKdmNPZ1dRcy1YbnNxLVAyNHpJU1hBZzlxR05IdGY0aGp4cXlvVmF4MWZuRjBBRnhuT214elYtNDg?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Le chantier du voisin fissure votre maison : faire constater les désordres, obtenir l'arrêt et la réparation en 2026 - Kohen Avocats", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMitAFBVV95cUxQVEQ1SFFYMXNrNFRDS1FITFMwc1lWQWUzVDkteE82UFJ2RHFWQXZHVnJvZU1ETy1OVzVZcGRLUzBjMDRTU2NsZmZTd1ltMTVjandCenBfcXV6a1FERFYyd0NQb0kycWFPY1lMMXN6UWpfNExyVkd3V3FnRFZZTHI0azBtcmZBbjNKbzc1VWtXTzJZVUFYWmtzV0RYZ1dLU3BodWx2YWM3cWRwR256dGVqX3c1Wm0?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Document - La Commission européenne 2.0 commence à prendre forme - Contexte", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMipwFBVV95cUxOdUl1WUlhUHRzYTBxNm1iMDdQbUQ4ckdOZFEteFl4dGRfZlVjSE96NnZHUTIxdWRBd3l3YkZCaHYya1B6NlRBSEMtXzlyOXNRNTEwRVBaRDF3TV90MlZoQXRjWTVIQ3F3VHRZLTM4eGlseGhYUEg4TnJDWndOTjdNMmo5US1pWl9rOFY5LU5wRzJ6QWlPNjA0RWl0bTJYZFN4YnNmMEFlUQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Chantier du voisin qui fissure votre maison : constat, référé et indemnisation en 2026 - Kohen Avocats", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiowFBVV95cUxQbUgzREdweVZlZWhwcC1Wd1ViR3ZuejlHUloxRTRhM3kzS2g2UnRjdExhbEhhRWNPR3ZxNlZucXVUa05sMEI3SUVPVjFXZW4yN2w4OTJKeXlhSm83Um5kQnpZeWY0ZXVMd1NTbWVQc3RzLThzcFc1N1RGUmtNOGZ3TVJPWGxONE9JTXd1bmJsY1U0Z1owc3d4U1g1Mmg1UmVNTTJn?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Navette autonome A10 : fusion de l'intelligence artificielle et des capteurs pour un péage en temps réel - Les Smartgrids", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMidEFVX3lxTE82Vy1KVWI2Vm9OWWlkSGlrVm1rLVFad1lmY1pOTHJWamtoZmpUOFhPUmNnYXdpeHBMTEtpOUU4NmptQ2hpTGlIemxzMFFKdUJXbDViZ1VaeGtRZFE0RndXX25uQUdDVlRUdGNkTjdITWVJMURk?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Chilly-Mazarin : Scale One ouvre son laboratoire-chantier à la filière BTP - mesinfos", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiwwFBVV95cUxOR2VuMjIxelBTdW9UX05JT2E5MTFDNTNFWktxdFY2LXVYQVlUZGExTS1pQnFIUzBUOTBjQ05uYmtYSWVOX3Q4RWpaVmNfMkduZ3hUenpJY1lhTVRUQWRhV0U3c25YRnJXOGJ5Sk5QZklJb0txNmNjTHdQYm0tRUpaS0hNOE5lZUlQX1oyUWdWbF9KQmJKalpYcDMweEdOdVVyVHhrRW45WGh0d2dpX191UzBfdnlVY2ppYU1JZ29rZ2NRZk0?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "B.T.P.NETWORK & TELECOM en redressement judiciaire (BODACC du 6 octobre 2026) : ce que doivent décider donneurs d'ordre, sous-traitants et fournisseurs - Kohen Avocats", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMirwFBVV95cUxOdkpRWVBNZklyVXlWVDlzMEhrcFpiMENzb1dyOUxmZkxPVFNQTWpTcXNLUTJ0QlpfMGJHMGdlRi1Oc3VGSldKdlQzNlBzS29UTGVoaFU4SVhkUmhYX3NMNzMtME1zRk53cFRFU3lnc2ZLRWxXZzM4RkFfTkF5VGQ2bDBpNWIteEJVRUdLMnprcjdEeWpTYmNFWlNYMENSZnNZOE5RTTB2aUlfTDFXUUxJ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Grève du 13 octobre 2026 : déménagement bloqué, état des lieux reporté, chantier à l'arrêt — qui paie et comment se protéger à Paris - Kohen Avocats", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMitwFBVV95cUxQNnU0Q3BEM0hLQUVuSEEtTzhOVmtnaEJ5VnlQeDJBcGxZaHhNQ3JLS2Z3R3FMQVFzVUZOekFPUVVXUF90U0hiQ1I3SHlIWU0tM01nNzd3QzhNa3FVVUdMZm5iVTBoTmdQaS05WUdseGVqVHhCU1dUNnN5U1QtSDNkVDc5eHFYSUFubS1xeG9SVEZMc2ZYMV93dUd3TUFRWk5MYkRZREMwcy1ZMUlmaGJ0elFDT3l6dzQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Accident de chantier à Laigneville : qui est responsable quand un ouvrier chute du toit d'une maison en rénovation - Kohen Avocats", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNbDBFbWZybVdwU0R0MHdObjJPVEFoaGg4VHJzN0hQUV9tM2UyNEVtcWZJZ0xZVWJleWMxQk9jUXB0RXd2bi1CcWpRcjd4NUhrbmdvVjB5dmJwVmttU2dwT3dvSVVDSDFabGttamFsM1VSYzFUeUJjblNTWEFkMkprYUxzUVg5TzFmclo2M2hBbkl6dzFvNkNEYlRWODY3ZVF4NEtYS3I5ZVEzRDhLWlpNaw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Algérie : après le chantier d’accès, l’école face au défi des compétences pratiques - AGENCE ECOFIN", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxOR1Nrb0pJdGZHc1Y0NzRKaTVKd0xNbnNla0lraUM1UGE0QVNxeDdTb1lkci1aVURCZkxBbVp3emFhdTNXV093VkJ5LUtUbU5IZW9nR2xBbEJBWFRkNThYc01yUjlraUxZaWNwVGE0NGtTcHM4RlB2emU3VHpIVlNpeEExdXFuTnVEQnpJdXdaMGJqdzdJTEktVEwtR09MdTZFSG5sOXd2cVlSelVfaW5OOW8tMFBadzlDRTVWYVBvNnJTVEFpSTh1YWFPSi0wc1k0?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Dossier de surendettement et facture d'artisan impayée : chantier à l'arrêt, huissier qui poursuit — déclarer, suspendre, contester la facture et contester devant le juge, que faire - Kohen Avocats", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi1wFBVV95cUxNbVF1TTc2YkJQekZCUHdlRVhHWFM3LS1rYWZocnpQMFNOWHJHN0U3bGNjNUVkeXNFNDFBeEhkNHNfZmtoc1VtQTFUdWlnWjVCRkRmcW85aFRaVGZ3ZGUyNlFUZFhOS19aNnlWeVFSOERsVE85RTVnT1N4NUdlUkRJWVJEYjEtR1d2TDZmam1XakdqVDhtNVpVRDhpcW1NVFgtOHY5OW85U0IxbktzbEw4cXdWVUU1dkJGYVUxWk5pcGdFZ2g2aXU0eGpoYUV4WWJqYVZEck1sMA?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "VTV développe son architecture numérique 2030, visant un fonctionnement multiplateforme. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMikgFBVV95cUxQUnZVbHJiWkh2M1JyWFVIbkJnd0RxV2huOVpSNGVjRkFjaXBTUDJGSTJjMy1xSUFuQzU5cjB5dVhGMmRqcFhySmktOW9WQzJzRGxtR0lUaEpkVGlpQXBJeldraG0yVVkzUFI4QTFNMkt5bFREOWdNNGxnYVpJMDgtaENyajZtQ0lrUGY5TWQ5R1B5QQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Un Modèle IA De 284B Tiendrait Dans 60 Go Sur Les Futurs Portables RTX Spark - Pause Hardware", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiaEFVX3lxTE1QcXduSm5DdnlUdWo0MmFheVpJMF91NHA5VFlQRmhKUTBCcmJ4VGhuVlFTdmptU1VhWVl6bndldkNQYmhsZlM4UFJyWnp3Yk5Ca3dCQ01DSVllX3NsWWVFbGJ2ODZhTkM0?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Après la bataille de l’autonomie, les recharges ultra-rapides relancent le match du véhicule électrique - Auto Infos", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxQdlI5bXQzOGNqaGI3eXJHVk8xc0JoYnpnMjE2QXhUMlJwd1pCS2NxOW4xRGtlNjlNaFRUOVJaNmZIc2UtRTFUY25CU1NJSWp6M0Q2SU0wWElxSkZQZTFsMkhyQXNKRTVUTmZzVTljV19nX0gtVGUwWUdmanlhOUl2eVZaUTRfbjNuWmVtRGd1YnpRUW5sYXNrRVVRdlBzemQwQU5WYURiaGZVRjY5TXhjZjJFSUtfbHVBb3F3OThIWUVMek5jaENNNl8tLWlfNXJWQ1FKQmZjRmhadVE?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Mistral dévoile son plus grand modèle d’intelligence artificielle et tente de revenir dans la course mondiale - Le Soir", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxNTTJTamdTMDlqRGNySDI2R0RJMFo0TGFyMVdxZjFyUTNZZzVKXzlTdXJ0RENYeHMxSHJNRjd2TXBmSGdVX1VaWnhlY2ZiUXp1ZkFDTFc2TGNMWmdtMEJzRG1JNDZnc0pmWExPbWx5SmpuUzJPMzJaWU42WHVSaTVJU2xuNWhmWUJtR040VFgxeER6SnJTRFV2RTBoUzZZalpmR3RVTFZ4cUdfajF4aVRKQ3EwR1NFbFh2NkhkYjZqQzNDQQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Nexus confie à FiveNines la conception préliminaire d’un centre de données d’intelligence artificielle de 20 MW près de Casablanca - برلمان.كوم", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi6gFBVV95cUxQTzcyN0lkOVFBUVVxMmtWS0szVUJnVFdoOUl6MGxDd19HUUJyYXVlUXAwbnM0YzBleXdXQXFENmhsanFCZGVjeU4xLV8tM1l4Mm5IdkFQWGVKa1VZbEtSaUM4NXNPVEo0LVRJQ3VtcFRnaFdQdFNoemdvaERGbmxBNDZDcGI4OXpKRVJoVE5aTk45ckwxWDZPVUxSc1Q0NllxWWVWazlrNVhvYkRIcXFQNWwtdDVxNlk4ZTMzYzJER3RZeVZfeDdXc2llWDQtdE13ekRVWU9BQzJJdG1ZS2NxNVg4ZXJOMDVEaHc?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "La cybercriminalité se « commercialise » grâce à l'intelligence artificielle. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMikAFBVV95cUxNYUp1dXRvaDYwWmFFZEpYVHZGUkY0aEtGWWtRNEpGUVRrZm5xbUo1cVFYQnJmNkxNUWk5bDF5OVlWbERHcEJWc3o2eWVvckpmTy1fbHI4OEpxTVlFdEZfd2dWbEZ2cnRQV3VFMGFlTjRfbXdJZmFsT2IxYnRfVjFYU002V0Y5QlJoRTZuOUkxem4?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Camélia Leclercq “L’éducation est le premier chantier de la souveraineté africaine” - Africa News Agency", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQZGdwTVZOQlVUODJNTEZ4ZVpMbndFTjE3Q2FXZ1cyVzAtQ0pSSFBmUFBlb2xKVHVRVGpoRHN2cjdyQzJvbnJpN2lkZnh2Vm5fblRkZUxBUmtBdlZwQnRkTGlmVnlUSEVReTBaQVZhazFzenc1WE54S1dmc3ZzWFJSNDNveUtfc1pNVHlqWk1XLVBwc1B2R2ZXX1Vockh5ZGo5VnZROWlGSDFoUFBvR0t6OFhn?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Maryland : Anduril investit 6,6 milliards dans un chantier naval militaire - Enderi", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMilAFBVV95cUxNcWpjeTk3V1JBOFRTdkpZdWZMVTFNTmJPdXlwUFhhTzF6X21hMWczdEtSX05KdkRlc0NNelo4S0poNUVKQ3pXQUVMcWo3RGI2eFVNOHF0V1Ryc08zN2pvWmltQVZNSGdSV3U4dEVUNXlsd18wQmdNZ0tpVFNpR0wxelFGeVg2MjQ3NTUwWDFiNlUwQU5O?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Elon Musk prédit que l'intelligence artificielle « surpassera les humains » d'ici fin 2027. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQR2dMWlY2ek83d1NSMHNaOHg3UWhfcjFCNGU2clh1d3Z3S2NPZ1JOLXRVQk1OVW9JaVpwbzZkNWpSX3JSblFCZm5UeFQzQWd2NlE5dUx3cHdtWERvanNzNlZSS01ZVldNM1BJRDJYbnNBNEtMLV9ic2U1TFotYndpdTFLc0FaYXNzZDRSNHQ4M2FicjJ6blhlZkFNeDBQMGxVelE?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Des élus de Regina débattront des répercussions du centre de données d’IA - Radio-Canada", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMilgFBVV95cUxPWkVfZWpQbl9QcU9JN3kyUHpGUTlKTWFyRGJMczI5anNyM1hYczd5M3dDeXByQ2JmYnRkd1lBV2JNVkVSNzZSSDNiMV8xQ1Axb3FuR3FtdldMVF9hRkczVlNmX3FRV21ySUQtSVpONm9yNnY0X0FpMmJyNUd2QXNQSFVpZ0xWdlZrdEJqdEstb1dpc1VqeVE?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Bell veut acquérir près de 900 acres supplémentaires pour son centre de données - Radio-Canada", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMihAFBVV95cUxQRXl2THp1V01GSTE0aHlYTzFOYWh0Z2toOFREOW04MlBTVk5QemgtalVXcWxvbjF3TmcwWGVsRGs2c3JUS0EwUmpHUHItTlh4dlI1S3BBcTRBWW03SkhHaXlTLUl6VzlpNXpoSmg4bDd0dWYxYmVQQXBETmZTRGdXbV8xYXo?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Toile cosmique : comment l’architecture invisible de l’Univers façonne-t-elle les galaxies ? - Caminteresse", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMizgFBVV95cUxNaTk4SVAyaWlhc1pCTFNuZy1vR1VGaXpuMDRlVDFMQkVURElIazcxd1JsNlpFLXIyR2haNlZXbE1rcGd6S0FlOW5XemZ0ZzdsUnpqOXlxQlR0TGpuQTcxYzFDRjFzT1JDZWhOTXRvcHY3NHhkcHYxcGUxZHJ4TVNEMWdGTU5SbzB1bnh0RTg2T2RUNnBtTnR4Ym1HQms0XzBpeFUxNTNfbUNjamJSZUtlRURjZUF0dHZ4UHhJYlQ4cGpoMHdCOG8tR1hrMWtBdw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Le Secrétariat du Comité central a publié le Cadre d'architecture numérique pour les organes du Parti, version 1.0. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMioAFBVV95cUxPc2Q4a2RqNlJtbFVJVUtHUGpoZlo3dHNQOUxfQVMwVEpzMFd5aE13SmVJVGtsWGxxWG5Palo4ckNGU3FmWkhNbEJSTHcwa0ZYTVpQSmFFcUg4anA0RjRaZzNDczZDb21QZGtBT0Z0b2RyRkdIU210MEVCeGpwMTB0bTFObGdIRUhuLUYydnNqNVFiMHVDa2l0YlB5aGNVb19R?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Transformation numérique : de l'architecture, de la plateforme et des données aux résultats concrets et à l'amélioration de l'efficacité de la gestion. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiugFBVV95cUxQaFAzWmFOSEhFRG9Cd1ZpdTk1U3I3YTQzckdpY2FWdHF3Q3RvSFp2aHp3WE16bGtpV1pnSFpLUlY3WWR6ejc3NTVsWlZCWFkwUWExaEVTcWRmRkdNVjBtdUdWeEhZYTMxMFVlRW5WM3pCcHBmQzVQdmV6bmtqSmd6MmhCVWJfREtCcG9vVTVteUEwbnpUbDk2Ql9jRm9PcDBKNm55NHJ3aTBGaXJOY1dRbUd0Q2JvQXY2ZFE?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Google construit un centre de données IA en Inde - NeoTeo", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMingFBVV95cUxPZkJWSDBzZ3JqZ0t6eVloVUNVUmhRYU9HZlBFS1BVakFLRjVNeHFKNGpJZUtyWjAzd3NqcURuSWhtWTl6Q3k3azVORnBDQ25xcG1sVmVYTkJSLXN4UE9jdEl6WFhkOXZnN0l6M2g0YTFhSnZaY1o0R3M3d2k0Zmc0bnlfVlFSeHdMY2ZZRVpPMExUTW50d2s1bjBOaGdaUQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Le vice-président du Comité populaire provincial a inspecté le chantier de construction du lycée Cai Kinh. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMipwFBVV95cUxNVl90bHl1bDFKLVZlb3pVeklmbkNEWXJ6MUI3SGJEN25pOWVOaGNHY1Jtc3Q5UXZIT2hzZ3JtUnh1TVl2dG1hdU4yQ0VqRGtWWU9RMlNHNUR0OEkycHVtazNORi1TeEx3THUza0trSW9SdWFmNUw3QzFUeVItNEVKLWhOVmd2VDR5azRDeUJQbVdlNWN1V3dfbFgyeVdMX0tFaFh0VVhZSQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Documents biométriques : Un nouveau chantier pour l’administration - Le Jeune Indépendant", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMinwFBVV95cUxQTnhCdU56S19EMlpYWWx6czBSRFc3ckZ0MXJoTXVIWVgxcWFIcEVHU3ZVQnk4a0VNLUNYSmIzUlAwX25KUnBaLTA2ZkdoTEREYWdRWkswQTlOeDhueEhCU0VZUXlqN1BzazBPcS1KVTVTZG5jNUVyaVdnMXhhbFBNQUxSaElDZm4tQkpVNUJqbU01YnZfSEdEY3NDTDFULVU?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "L'Université d'architecture de Hanoï promeut la transformation numérique, visant à devenir un modèle d'université intelligente. - Vietnam.vn", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMirwFBVV95cUxNVlpHSjUwWHl4MDRFdlVzQW4zWlJJbGpQZy1rM3ZVdnIyYWZLdjViejR3b3ZzdzdpbjBmdU8wUFYzUWs2MGhscmJSTWZjcXM3SWNNcU84UGt3dkpMeENxel9KN2QtaUtoZ0I3Wl8xalhJb2pTOUw4U3pYamRHQjFtZ0pIaE50cGRWMnk3YnpmWC1KN3l4eUkzMEMwclRTU19YbUg1RXlCVVNhTDBBZDRR?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Deux Premières Nations contestent le projet de centre de données de Bell près de Regina - Radio-Canada", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMi1gFBVV95cUxOQ3BmVkJ0Rk5YdE51UDNuVEtQdm1xSS1DZHlzNURkQXVyLVhfRUR0ODFobzlPS1BzNzBjcjR6Vk90NnVEb1dWZl80Y2JJdklDbUxKY3JPRnlGaFVjOWFVdHN2VEM0NnlSTjZIZmxYYUdMLVB6dF9KeXVWQkZhZEpRTHhtRU5DU2swb1JCNjhNVnpHMGNMQXVubVB2bjdIVGJ6aFpIUUhJR2xPMHdTVkJRWmhKWlpBdVJwSkhVYzdxdUVFYmdCNldFbVYwVUljRnd0X05vb2VR?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Investissement et innovation dans les BTP: Les experts africains se réunissent à Abidjan en novembre pour réfléchir à la question - FratMat", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiigJBVV95cUxPVWdNSXdlWTViamZnb1dzemEteVhuYkZZeUl1Rk5SZENyV183U3NrbjVWOUY2SGlSVGdSbHJQN1pDeXNaZVhKRHNZN1B6ajFfbk1oOS01eC1uZWRVUVFqQkV2cEFweW1BZHFzcXkyLXg3a2JZNkJZUHhWWUNSNjJZdTI5YWU5YWR6eUZEcmdVdUZZSTNLdlpzQkFKRnJlS0FaVUMzbnMzcFNybXFXWkJtZ2JEWGdHcTQ1dm9BS2NkeU5hQXVzQWoyTlB4RVhTZllnTDFTd09RZlJfaXlaSm1UelllTzgzanR6ZnZKMnBXOEwzMmxlYlFxRy13WlZvN2twZi0yd0NFS01Sdw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "BCTQ – Grand Chantier 2026 | Quelles priorités pour l’avenir de notre industrie? - CTVM-info", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMimAFBVV95cUxPUW5aSVlIZmhVVDdFX1BRZlJCYTg1Rldkb0RIM0NETmNmV09XV25mbFN1VTNRM1FQd2hjZU9WSmdpUld6aDd5ZF8tMkE1dlJtRkNlSkVzYUFJQVl3R2NlXzRTSDZkbWFoc04yb0FWZFFKRURqN2djVmFFSWtGMkpScVplU2YxYlVQR2ctSks5dGQ0aC1CaWxWVA?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "IA NTU détecte psychose via parole jeunes - Daily Beirut", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMivAFBVV95cUxOdjRtblE0X0xfTTd5T3RCQ0tWZFMzWGVuMU5GWG1Wa0lwRHd6alcyTXp2WFJiMk9ubHdNYTBNUzJOUE9ONzRxNEdXRHQ5bTRpQ0ZlVkxiQmRhTjZqVmZSekI5ekx3ZHpjS1VnUkJSZS1ha2oxNUJncGEyV2RyUjg2a2Mza2hOUmZFclFKNUdBanFUaWxxT3dGQWhUOWlSakpYRms0X0dBaUVqQ3FnX2RERjlfQUxXenRMTDFWdA?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Gemini : recherche avancée, création de contenus et analyse multimodale à l’heure de l’IA - La Revue Tech", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMirwFBVV95cUxPNEwyUjNuWGxIYmFYR05VaVRjMTduRFhTSlFZb2Jsd0RuWnk3dEpkNjdiMnpzZElyVnZWdjM1d3M3Q0ZJU2VFNHdnaTMzNWtzbUVhMlRBRVBUdXhNMy10LTBZQ29ubFNUSlRhejItVWVPRGNvU1g5OExiUGwxYUdjU1luWUl6MGRqTXVGM3RXVlR2YWpaN2ZKRFdPZUdWR21xYWZsRjN6UlloOTh6VlNZ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "A $6 trillion question hangs over the AI construction boom - Construction Dive", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMikgFBVV95cUxPRDB4MFBPMVZQYXhCSEQtbjZTbnJyc05rN2VDeXJpUEpJLXVMV0tacjBEZHRaODhUNTZRVzZwdHdVbVBHbHpkSU13VWJKS0V0alpfR3o3a3ZrdWhsWWxobGtWUFJVaE51dEdxdkZtVWwtZXl5XzF6QUVzRWRILW5IRDNIcThvbUJOZTc1Vjl4dmlIdw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Construction companies using more AI - FOX 13 Tampa Bay", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMihwFBVV95cUxPRWE4RjVQbkNTenNwa0I4ZDlLRzZ3azgtX3lJZDRISXJsaFdmRHpqODRkQTlPdVBHN1E3SEtxdTZNNUh1dDdNejVRQmNnUWpJR2N1N2VhYjNyUWJvQkJITjRZM09hSXc3WnJkNEI3eUtCOFNYZFBkb1BsRERxNUJzYk9kWjk1YjDSAYwBQVVfeXFMUGlnSW0tYTFMV3ptTmRQWjNkSThzZl9oelUwVFZ2TmVkNHQ0SERyNHo5VnVJZUM5V0Y2MTdpTXZ0UGJEcmlSNldwZmFmS0tPeUJqT1pKUE5iTUxPT01jMFVGMXd2OFFDb2pQQzlYNjdsUnN4dG1QZUdOamtIRjNEYUstR2QtVGtDRmQxQmE?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "AI Exposure Remains Relatively Low Across Most Construction Occupations - Eye On Housing", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxPRkt2VVRqQTlVWVRjdWl0MlJFS0duTHVPNFppUG5hWV9GVmx5RUFZdUpiNkpKb1dza0M1SG11RWxhUTlqNGJxSzNCWFZyQjFNN25wb1ZJa0NsTnNIakZlUmF0cUFXVzE3ZU1Ha0FoMG5MNEI5V2hDQWVrSjVRbmRxTlo4V3U1SDA1bkJUYzRhM0s5dm5lNkhkZnVuWjJWU3l3MllQTWNLX3Y?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "AI changing the construction game in Southwest Florida - WINK News", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxPYTNqbXZNYVh0cXFkdXJiRkJWREo0NFp6bE52VTh5MS1WMzUwQ1pKZDNYR3hWVHl4Q2lZS2RqMmNBOFUtRUlhR3Jva1RrN2VNbWlmUWFnUVh2dGxPalFDQXlQYUhCRGs5eE5sTnc4Y3NDTjVMWmJabHhXLUdFRVRlSDZ6MFJkRjBsX1VtNzZnQ0pEZGpxTHE0amNGdDcwQjVWdmc4ZGlfRkxocV8xZ29HMXdZRHN2blJ2MV91c3hiRWlVcTBvZDQxTA?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "As data centers remain potent political issue, David Crowley offers plan to regulate artificial intelligence in Wisconsin - Wisconsin Watch", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMixAFBVV95cUxQUVdic3Y0alV1WldMbW1SSkpoWl81cE1UblhZOVl4dDYzS00xUnNvU01YaVRYb1lXUlhmaVFlSXNUQ0o5RUxjZjhEaEtMUlItYTNHUFFTaTRVb3IzZk1ud2h6THJZMVBESTNIdXR0RzhKWmtWTmszODQ2bEtITHdsX3E2dkUyaE1GWmxZYWR1Sl9xUUg5UUhHWEZXMkV6MGJ6Slh0ekNEYXdHOWo1WlQzLWdkZnY5amE3STdmZWkwV1hlOU9C?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Scaling cloud migrations with agentic AI on Amazon Bedrock AgentCore | Artificial Intelligence - Amazon Web Services (AWS)", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMitgFBVV95cUxPT1BLM1VVbDBDQk1rU2UwekYzd2JmUzBFYmtXR1UtQm9LeWZrV2FzMnJQVmFxWkdjX2Vqa1Z4WElQUmFPbkkwSWxDS2hqeFFxT0ZGbmUzR2xIZ2U2UDZpdjFmeU1MenROeG1wdFZjRDRPMW43cWZiODJONDFLRWpzOV81czE3bm5rRHJ0WHVQWjdDV242MnU0aFVRaWkteUluTHpmWWx0Y3pCci1XT3pROExEaFZUZw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Big St. Louis-area contractor promotes longtime executive to innovation chief - The Business Journals", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiqgFBVV95cUxOZ1VJd1lPaVV5QTE3bVI4N1VyemRMM19jTHA1bGlnaTUyTDBaVjZhVFBsSnNUTnpSRjltYWJCTUk0Y2JIM05qTl9WclNya3p0QnJuWkUteE0wSkRqSkJxZXFlb0piLUtfbUU1WU5KQ0tvSmNVVmJKT3dzQTlfcDg0a18tWXh5QWtfbThubUJTM0ptRU15RFBsb1pTWWw2ZDJlN3VEOEtpM0djQQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Construction’s Next Competitive Advantage: Intelligent Jobsites - Unite.AI", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiakFVX3lxTFBsX3NIWFQ4SWV2WnA0Z0Rjd01XYlZ2bzdOMDVtdGpDaTZuWGYwSG8xWVVrRm1KNENOLU5DbDJMQ2xBYlNjYkVyMTJ4Nm5naXB6Z3FZeXJHU0ZCZ1dnWVNqQ1pxbFI3amV0UVE?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "AWS seeks to automate cloud optimization with new AI agent - Network World", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMirwFBVV95cUxObjA5Q0s5QUI0WWpHNXJEczB5NGFsXzJkUzhYMXo3MW1RSU0wQVBOMnV2VkxGQ3IyOWVkVWhiSzVfU2UwMTA4Z1lZdUF1WnpheGJycWt5a3ZraFFUWWtIZUNDOEhCNkpLdEhOZFBIUUlxNEdRb1NmaEdPaUltX3JxZmg5RE9DOUpYMkV0bkhGWTlzRzdzYmhISG9Id0xFUmhPRDZIWWs2VE96RkRyck5J?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "CP Group developing Point operator intelligence technology platform - Construction & Demolition Recycling", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiogFBVV95cUxPcjNCcWlTdDA5Y0JSeGtFckFzRFJ1dTNhN3lYUnlSelR1SWwyR1QwQlUxMnQ5cjhQNlM2c19rUHhzWU5wR2I3R245eldvMzdwYTE4SElMQlo0azZRc2NkdV9oR0pNZUlnaTd4eUJlZl8tZU9RVklBM0V2TmhFZGh1MDZzaGMxNHJSYTZNbk1WcFVQNWJpbnVEdUtaN2xwcU5XWmc?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "AI Framework Balances Time, Cost and Quality in Construction Schedules - Bioengineer.org", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMimgFBVV95cUxPUk1GUVNDbGRiTF9zMmdqd0hySWNtSC1xS3hxdUJmNWdaNzFGZk5mVWF6MW5YZ2FxMXBHV2ZQeTBoY1I0YkJTSkw5d2VubURMTmlzNG1rZmRvVHdlV19jWERGVFNaOFBua3pIdFBvMDNsbGJxOEhYVV9CZm5UX09NRUNBbGV4V3EtN0t4NkJIUjM0eWRhdnJMNmJ3?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Opinion | Six Charts That Show Just How Much We Need A.I. - The New York Times", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMidEFVX3lxTE1SSkhYTXdSaEY0S3l0RnNFR3R4WnBtcTY0MGktR2gzRlFMV2xjRkFhS0o1b0JYZmxzdHloNHNpV3NlRTlscUp4aEtJcDVvcjRaNlk4cnRpcTdJS0dSQlpxTmxxeVB4T2pKOTdweUFOMmhfM2pa?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Sage acquires Paperless Environments for construction payroll tech - Construction Dive", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMirAFBVV95cUxNb1lQaFhfLTNzLVpkLWM2RUV4blpNR29qVElqaFJaX1lKcmdZdll6eE5VWTZSRUl0c055YWJsbWQ5RXVvUjZtUWN1NmdtcjFxWUlTZFFZTTJrN0VVYmZ6VFBubE1rcDVZYlNQQWR0UENlaVlKcXJjVnFpOGNDcl9NNmZpS1BoQW1LcWZXR3FhMzhuVVQzTXY0RWNKMFhscmxHTF9KeXJpWEJzZ1FN?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "The CIO’s new mandate: Rearchitecting enterprise work - CIO", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMilwFBVV95cUxNRDV1b2tyUUdyNkxuc0RXeFpZbFFQcHZtbXJFUkRtYUplUHRwUlhoY3dnYXRuSldIQjJicGVEa0ZoVTZjQUpPeTZRZzJ5ODdwYWNYN0sxSzBneWZnU2tkLWZlN2cwR0xHNHBuRkxZZDN5Ty1xdDNjY29ibm1OTmRHYUJBT2w4WkhxdUhzRnYzdHQwNDNxVHBV?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Building an enterprise AI benchmark changed how I evaluate AI - CIO", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMipAFBVV95cUxQT0x3bW53UUtGLUVSd1dZM0dOWThVdVBTRElUeWhqRHg3aFlRamF5d2NuVGNUOHgwVThhUTlYUnhiWktwNzU5UnNSQVVaaDdzRFV6S3FlM1M1OXdHb1BCQ0ZwSzU5cWloZXB6S1J1RS14LU5vYWpkMTlSejFsR28zUGZwcEhjdm9wbDUyOUdIZ0twcTJKb1d6T2pfWE0zOEhqNkw5YQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "It’s not your model — AI has a data movement problem - Network World", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMioAFBVV95cUxOc3FtUVlUZVlnOENTdHpTUVBiMGVGZTl4TUtWRndBVGlYVmRfZ3I5X29nZ1BicVg3OWtmVVBHUGpvZkQwVE9qUVF5T2RKenhwak1vdmxkVDlLcnB0M2xZRk9DVC1xamU3Z0xyazc5WS1TNGkxN09sWG1zRm5zeW80QlltRTJiMzVoanJ5OWFwbkpRZjNpR2FiSENpUDlCa3ND?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Sofia forum puts AI in construction and urban planning in focus - БНР Новини", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMingFBVV95cUxQaG9QSzVYUi1yTmp0MHZvaW04OEpYcXIyRWZVdE9IX3Zjb1FaVU5kd01NR01fT0tyLUhVaUlMVlVhVWxvc29Xa2EzbmVzZVI3Z2x6QmJ4RmZYZHViTm1PWUV4Q19NUjBxRUxqS1FiZmhwRzhQTndhUUw1Uk1URVkweDhJSml1SXQtZzA0QjlSenZxQkx5dGgyeUZ2Nm1tdw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Construction’s Productivity Problem - Connected World", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMib0FVX3lxTFBPRjhfQ2czRjdhRGFOMlN5c2kxMkM2QzBHTDlkd2V5NWJJQnJNNkd2TVRPTm5jOGpYTDJNSGRNX2l3OS1pMVdWSlEtRkNaU1h5QzRpVGwwcC1xVnRUc1F5a0dLRlBoOFZKMlBPY0thVQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Critical Minerals: Models for Improving the De Facto Global Architecture - UNU | United Nations University", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMimAFBVV95cUxOU0JwYU4zWW1KR29sc2I5eDZPQl81UHJUNHZuMDN0U05yV044eDllZEhYejhPaWdERE5PVHdqYmdBQk0xV1hjRTVjbnF5aURYR1V6bjhSYk03VGV3aGVhVTNLSmVNZmIwNi03ZC16cEphNHU0Q0FpRzhNZTNyVXI2MmFfdjlXYVRWRHJUZ2dvOGxqMHlnTk5IRQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Leon F. Mead II Publishes Nevada Construction Law, 2027 Edition - Nevada Business Magazine", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMingFBVV95cUxQUjgtUWxidTdNa0Z3U0huWEROWnplTUdWcW16Umc5OFRiZlJUSVNJQ1ZpdzR4clRzWVpfOXVEM21sVmUyNzMyRzE3bHp1WW8tUmtZcVUwZmFjTDhXTFVjTko5TEtxMXVmUWNwVTN4N2xEd0lNdXNuaks1VFYxbW82aDlKclRFU1FmQ2xHMFA4aDdERzhwQVhmV0lhWXhfUQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Sterling, Quanta, Herc, Construction Partners, and Nextpower Shares Are Soaring, What You Need To Know - StockStory", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi8AFBVV95cUxNb09Eem1pUDlEbU1BNVhrSnFYaGRwM1BiQ0JTQ2VjOTUwTkI5MnJIQmJsdV95S2k2ZmNsQTJPQmFzZ0JWcFYteTd6TGhVcll3NUpvb0VrZ01jOTlydk9qaVJBVzhYRFVkUWszbUdYRFVYUW5KSmJNYUF1OERqRXFyUF9OZW1iU2dkMXZIOW8xVVFNRVM1WVVBa3hkbng4UDJhak1UUXJzSE9Ja3A5eVAxQlJfQXdLeGlCQUlnSmVFd2FleFlTbmpoUGdQSUw2cEtIQW9qZzlvbkctN3hxLUZBR2RRNWFkbzhXR1lkMnVGZC0?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Alta Group Remodeling CEO Leo Lutskov Explains Why AI Cannot Replace an Experienced Remodeling Professional - USA Today", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi8AFBVV95cUxObGZFNjczRURpMmJKQ2w3Y3l1Um1rTGhZQ3BrQ2NyczljYzhXSm9BQUdNMTlxSGswa1YxWEhJX2doSU9VaHU1emRnWEVhQ2VUcHQyMkc0cl9TQ2ZGcVBYS3Uyemg3VkVKbGx0OXFQX3pRaXRuQ2ZXdXpiNFZwRHVkb3hWVTRRTnIzMjJRaUVJdTFIYzdwRTZ2dmZKbmEtOGtCYmtQS1l2VWFDUXB1bmJjTVdJNC1sZVhKaTBhemdTWjd3RjRIMjhYWEYzSXp1ZjVvenF0X3YtY0ZhUmhINnZMSWZiQXhJSHNaWHVIZm5OY0U?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Growth of AI data centers drives investments - Inspenet", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMipAFBVV95cUxQRGNSX08wbElJcFBvWVc2MmlsNlczY1cwWnJDWTNTX1JQcnpKbHZQRVk0TFZlQUJrcUhOdFI1R2h3cDIyRURWdDA1cU53VjVLOVJnOXJjdkp6T1NTTzZjRWhNMmxGcmxCb2xGVnBqTXB6NXdIbF81OW9uVkZsRnJjVWZlMTYxYnR3b0FheUNDYjZJN0gwVkw0Q1hiejdmSjFRUFBXZw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Govineer Solutions appoints new executives to direct artificial intelligence and payment units - Portal ERP", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxQYnpIX0dHbWJjZEFQaURQaTJ6T0tLbnZNNFlIdlpWdHQ1eVJpQlFHOXVfRjFKRnQ1MUhFeFJxbnV1S2JBRlJiMGJteDcxRzFMcTI5UWhHYWVacmRPNHJaZFVvVmZGZGctdmM4dHBwaUtuc2JlcndTQTVfRTFwSUMtVlhfN2FuYThVdzNMTGc5dGNxZmRqUGRRYXdfMTlkckJFanV6Y1hlcjFPVFVCZ0pSNUZsa3c2eEl5cFpza2VmWE5pdw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Rent control is on the ballot as Bay Area housing costs soar. Here’s what voters need to know - San Francisco Chronicle", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMikwFBVV95cUxOLWl5cXRuQ2xVa2M0c21IeVE5aGpsUzNFd3ZMRnZYd2NIRVQzNVpVN0h2THFwOVF2anQ4ci16ZVoweWRsYjhkczZQc2ZXd3V3VGR3REh2NkJ4VFRJblRpVEFiNnV2SFp0Vk9ZYU9wbmlrT1NLTDdFSTVLZzVIWXl2b1duMHhDSmlzNWx2SHhRUGdFNWM?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Houston reconsiders Nova Scotia data centres as EverWind pitches adding one to Point Tupper project - PNI Atlantic News", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi3AFBVV95cUxNRmdjTlNUUG9HOC1Md3lZT2piRTZoOWw1anlLR2xJeC04SDUyU3JsLUY1Zk1UYWc5SVpJQVpjdGZueUZqaDhxWGd1Y013Rlh2cWpRQkdLSWluODM3REFsX3A3SHU1ZzM1cHFhZHlHZmRTWUlHRHdFRDZfVFRCWFVaOVVhMDNDZUxnb3FjSjBfLXg0ZzVOMmJXdkcya3hQXzFFVUFaa2NaSC16S3IzV2lTbTNMUXhyWEpRUG9EcVBZMkpQVE1EaGJWRFRqQWcwTkxkUFBnTGEzSXpzVXZS?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "GS Engineering & Construction Hosts Partner Co-Prosperity Event - 조선일보", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxPM3FIcFVMeGgyQURWQjR3Z1VFellXVTQ1V0hlRG1YcnYzdDhmTUNFVVNzVFZ3LUw2cDVQZE82QW54WWxteW1Mb1R2SWhZRDVGMTBiS09BdzJFbnNDSFNlWUwwbXp2VFhRSlh0R2cyOUl2X1cxSzV6aVQzLWszX0lhd2RzbmNjMG9q?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "US AI spending needs 9% of GDP by 2032 to justify capital boom - Harici", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMikAFBVV95cUxPSVBoRVhER3luMUFLd0ZuZ2otR3VZbGFnNWhxNW1ab0xoOThiVkNhbVpsU3JDNkhkanVndTZCcUI2WUE5YWg1WjFHdWVVbTZSMVdkMGNRdURuQUlJejJsdTlSQ1pOcHpzRTJuTWdvYVFFV3psM25SS2U2aXI4VHljMGdIZVo2WHlRcm5KRW8xWTXSAZABQVVfeXFMT0lQaEVYREd5bjFBS3dGbmdqLUd1WWxhZzVocTVtWm9MaDk4YlZDYW1abFNyQzZIZGp1Z3U2QnFCNllBOWFoNVoxR3VlVW02UjFXZDBjUXVEbkFJSXoybHU5UkNaTnB6c0Uybk1nb2FRRVd6bDNuUktlNmlyOFR5YzBnSGVaNlh5UXJuSkVvMVk1?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "In the era of general-purpose artificial intelligence (AGI), KCC E&C hosted a lecture to examine.. - 매일경제", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE5sSW1kRVhESnRWTjA4REtIelJxdGx6TDBwSmNKQkJhaHFGLU5wTGpLMEE4WFNqVktnVkJBa1g3SHhzLWFMNm1LRTlud1lwUXFZa2pDZTVn?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Bell Canada, province tout speed of AI data centre's construction near Regina - CBC", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMijgFBVV95cUxOTGtoMm91WDBQazJRODd3aEc5Sjl2WnFWSVlCWFBvdjN0R05YN1N4eldOSGw2bGp1RTZIYTJsR0JkeUxMai02VkdYcTVYVGNzUXk3OXFVakdqLTlEaU5wMTlMeWdqbFhQQ3dMSllPX0VZdmp5LU1LOTZRY014SXotb01mSjRGRmd0cWZJZzZn?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Hoban Construction is speeding up the digital transformation of apartment construction management us.. - 매일경제", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE4xNlp1Zkp3VXQ4MmFSMjdxVVBfZUlOc2M5ZzlvbXNfLTFER0o5WFduY1pDS1ZQQ0F0bmtZWWtPZ1JnR3JDUDFzMWo0TWZzWFhPeVRZWUJ3?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Illegal parking management technology through artificial intelligence (AI) cameras has reduced illeg.. - 매일경제", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiVkFVX3lxTE9mUEdVNHZUdXg4Q2t6NjkyeHF3b3NDYzZYUkVUazg5ZlNXaHY5TnFRZ0oxanlsWVNKY0R3Z1lGWWxua0ZsQnhrVUlNUXdmcHpDYjJLVExB?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Finnish authorities call for the suspension of Google’s artificial intelligence data center operations - Informat.ro", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMixAFBVV95cUxOd3lHckx5WXZKa2hCMnd6MFQ3NXVTTDB2ck1vV3FOTlRpeGIzNW5FYmpOY2NjME5xdnpSZ2pBYmpoTjRRbTNWQWRGM09JTHFNVUJ5ZnhLblZwM1VPN3VQVnVlUm1iTGVuanBPV1dPTXRaTUhCZThxX1g1VzRvU0RycXJRSnZjWEU2RTJZYmo2UmFlUktteGczRUFQNDJ1RDJmNm9NMzByTGF2U3dfYkhmS2pnQjhQaV9JMVBNZndtUWtvTUdU?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "JTC and Kajima launch Singapore’s first autonomous heavy construction equipment pilot to ease manpower constraints and improve worksite safety - Singapore Economic Development Board (EDB)", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiswFBVV95cUxOazFoZHdmejhyOEFTb0luazk3S0FDWDAtLTFFbzFKd3l1XzRZUklrR21HeUx2UnpvdjJLYVJpUkw0TE5jYjVkS2VGcHhsN2UtQU1fMFMzSm1MOGZaeTlXemgtU3BRbzlOOWZmX0RzY1hvYjhLblMzSmZNTnUwQVZYZXRVYVJOWTNzaG5RX05hUEFmNWlzUmNPMElKT09fSTk3ckVFM2d0LTlQWXVJWkFHUzJETQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "KICT MOVI AI cuts illegal parking by 99 percent in Namyangju - DongA Science", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiVEFVX3lxTE9lMW1FQXFIQjUtOHZjYkpONHMxeXJmQTJxankzUVEtQkVnZ2ctUEhrb2tpS0ZXdFNVWF84Vk0yUlRDSDRQRG1XZnR1a2tuZnAwYjR3RA?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Singapore’s BDx AI sticks to 2027 target after Indonesia halts work on data centre - The Straits Times", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxNdGd2TVpFMGxWXzBjSEd2azhDdEpVZzdnVDFIZUJzZy1FQkdUZHZuTW9uRjFwV2E3NlhHOWJGdFpLY0ZqczJZSTVnS3VXR09HeXRzUkJoeTBXRFpPRTdfd2NHVFI5cG5wVWJTQTFtS1JmbTFfV2NPNFJOeDhuWmJXMWJReEo0QXNWSkN2N3lRU1hrWVhNbG04UjdMU1FxODdPVnV1cDdpSWlsZU50OFNPTWl5YlFiZFl0TW1ZdmxrOFc?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "OCN NI launches nine new qualifications across AI, construction, manufacturing and green skills - NorthernIrelandWorld", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi3AJBVV95cUxNR1RJRjVhaEVXcXZ2WWRoeXpnZVVyeHJFdWJKYU9EVExSTjhsNGdvVEF1UVFMMmhVWXdwUnZ0bk1xZnFKdTFBOTNIMTJlQVRnLXZMbVJBLTEtdjlvWFk5LUpTQkhYS3UycDNST1V2NzVBbW11V0hVbnFVMzZYU2RrUjFJOFhmZ2VYUFBkeDhhRFYxVjdUNkhnWEwtdERUZVkxSnplcmpEWndnV2IyZXdYeTVpLVBlb3pJTFI2Tl9qbzVZczYzUTVjc2xDLXhMNERsNzEzNjNnQ0d5Nm9hN19MYko2WEpiNEd4MENNc3B0bDk0WTFYbkxXc2VQR0gtYWdwWXNUVGdTaWNYdWtnZFhvN0xKQzFvTjBGRVk0NjN5N1h1dHRwaFYtRFh3NENPa0x4b0U3OFBNNkZJSE9Sb29YWlYyZTI0TnlSbVVXWXI0U3ducWNSYVQwV2txS2w?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Dr. B.K. Modi announces launch of an AI-Driven, Sustainable and Technology-Led construction venture to transform India's real estate industry - Business Standard", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMixgJBVV95cUxOMnVBMWlDbXAwZUFwbnFCWlUxWERJU0RQeHRxU0NUQ1QwempEWU5HX0hFekZaeEhkOWh5NTJLOTBFaGNqUWFkWk10M2Z4YzhrWUMwQ0dJSWJXY1pFWk1LdVd4b1V5RV9OOG1pQmZQUC1kdjQ1eHp2V3I0enhwTllxc2dMS0dyWE94VC1SRU93RGxuU3JoUHc0X2FGak5kV2J5ZGhPMS1SRzU3emYtcUdPVWlYeEFQSGQ4SzgtQWNBcEZzLU5JYlVTU3FpM21PcEp4NzJnbFdWV3c4X2VwZGo2cDFZeG5rYi1fQmVEV3Z3RGVsTndodDVlOUwxd2NQblVDU3JoOXp1U3EwR1Q1YWkzcVhEemV1SjFsSFlnaFl6eDczSGIycGdkVEgwRWlqQ3E4alo5LTFMSVVEMXQtTk0xRUUyc1ZZQdIBxgJBVV95cUxOMnVBMWlDbXAwZUFwbnFCWlUxWERJU0RQeHRxU0NUQ1QwempEWU5HX0hFekZaeEhkOWh5NTJLOTBFaGNqUWFkWk10M2Z4YzhrWUMwQ0dJSWJXY1pFWk1LdVd4b1V5RV9OOG1pQmZQUC1kdjQ1eHp2V3I0enhwTllxc2dMS0dyWE94VC1SRU93RGxuU3JoUHc0X2FGak5kV2J5ZGhPMS1SRzU3emYtcUdPVWlYeEFQSGQ4SzgtQWNBcEZzLU5JYlVTU3FpM21PcEp4NzJnbFdWV3c4X2VwZGo2cDFZeG5rYi1fQmVEV3Z3RGVsTndodDVlOUwxd2NQblVDU3JoOXp1U3EwR1Q1YWkzcVhEemV1SjFsSFlnaFl6eDczSGIycGdkVEgwRWlqQ3E4alo5LTFMSVVEMXQtTk0xRUUyc1ZZQQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Zee Business. . Mahindra BE 6 में Snapdragon Chipset का कमाल! Infotainment से AI तक, क्या हैं फीचर्स? India Mobile Congress 2026 में हमने Mahindra BE 6 की technology पर बात की. इस electric SUV में Qualcomm Snapdragon chipset क - Facebook", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi4gNBVV95cUxQa0wzZS16eTFPS2J4UW1ZczRucnhLa0dGT29Wbk1xZE5wbm9yUWhyeDg5ZldFOThoczlPUS1WT1RkZjU2UUt3Ti1Od1RXWjZqOHUtVW9iQ1p0bW93Q1FhRmpHbG9EdWtlTDVhcDNzeXVTTV9pNi1rQ25zcUxRTzQ3NlNsNVRvUVlBbk4tNnpMcjUxSEhoTnJNWUJ0MWJPT1pnSEFnMVJBV0kzSmgwaUxlMHFzMHU4VVFPNzhxeHlXWnJrQUUwU2s5UW1JeTFhTFhSWlp1ZGctaFJEZjBrSkFqU2ZCdWZHazI3aHZZT2JHTHVKUmExTWpyd3JILUZNWUhyOHJxTU9GWEcyS3VwT3RvNXZUUU5DNFE2dFc3aWtqZVhZU0N2bEZIZW9ZZWNQQ0hIcURFWlhNYnV4QS1FaFZlcmZrdW9IcGI4aGZ3dFE0X0h1Ymw2Z1dGYnJxcnk5b1hyVnhpRTFzdmtfcGdtUGxsUnB3QXV4dk1rMTladUU0dDhObE5ldmpxZUFodF9RWWYwdTRfeVRjRkgwVDN5cm9BNHhJLVJYakZjMHFZbjloY0NZaTlTNFNIMmZ4Y3B0QjI5MEdXNEptcEM0ejNYLXVpRUZuM2t3ejY4WjYxUWpqT0NzQQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Contractor caught in wreckage of failed $44b Firmus float - The West Australian", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMi7gFBVV95cUxNc0NmUEhjamN6WnZuQ2xWUy1wS3R2LWs2Q0ZTa3ZkWTVPTFhIX0xzZDRpTkN0STFVdkRUTHhRLU4zdktjUUdrSUJzVUF4OUZFcHJpNVpPdFpYX2ZWenNVVzBSZDhhNVFoWGtfRmVHdzRXNGxGb1hEX1h5V2pyS3NvcmZWT2ZXa0pDYWw0Wkl6Ukp2dmwtdGZ5eVdZNEdNdVgzSHFtRmwxbTlUWDRLUldwSlN4VUVvWjVWTENuMnlNVDJTYmJ0aHV1ZjBmdFE0RVU0bS13enNaMy1HeVNKZkRkTkVzY3dhc09iUDlwMkxB?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Nigerian architect, Wusu earns doctorate from University Of Hertfordshire - The Guardian Nigeria News", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMisAFBVV95cUxNSDV5UVA0SGZ0Ynh3N0NqT191WUNpUG1DclhEMUpFdE1jRGNZZFJlOU1ZWDhnS3dqRnAxYUwyOUttYVNodEs1bFIyY1lHZlY2c1hVSmI5RlZoRzN2OVMzeXJEWWZLX3k1Q3l0T3F4TTJMNGgtTDlfYmtPVDZLd3c4U1BINEZiN3kzUktWNFR6eGJvZC1tWTJTRnlzUVJPS0VnR25KU1lYWGN2bG1Db3lTWA?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Elon Musk predicts that artificial intelligence will \"surpass humans\" by the end of 2027. - Vietnam.vn", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiogFBVV95cUxQam9xVkluZXlGcTdLZ0l0NGFEZ3hPQ2pya2ltZVVHeWxqN0x0SHhaTWx4cFFWdXVlSGpsWVU4emNZWHZhbGl6b3Z1S2dWaU9peVVuMVpzZHVNdFYyVEEtLVlDZHA3dExVMXRsZzkyRElrWXJoMWFTSTFrUnV3dHhfMzJMRFdYTmZUdVhBSUtsei1LZk1OR0kwN08tcHBDbXNJanc?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Droylsden entrepreneur develops AI tool to cut construction paperwork - Tameside Correspondent", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMivgFBVV95cUxPRXltVmhBVk5OVjhYUXg2OU1nd2lYemxUZjNhbF9yT05jcEpIbHF0LWVEVGZUVFBPSGQxRmJ3NF8tc1JEQjhZQ1NiWEZfNHNrM0tTd193RXFZYUJWUXpRcERMTzJkZGtqaWlmaFVKc2FiTWtmVjBsQ3dSeEhrREtqM2hvMnViSXBPQ3NXekFZREl2NVlWOS0zVWZERWw4U1E2Z0p1YU5ISEhMUUVjR1FaZ0xGNUhPTlFnZHdVdGxn?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Hyundai Steel launches integrated H-beam brand 'H ONE' to target high-value-added market - 머니투데이", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMifkFVX3lxTE5KbVJkdkNMMGVNNldockhzSWhGS1BZdlFNaW5kcTY0enRWMEhCQVNMRnp4bDQwaElhY3ZGNm9zeGpUVUVTOVhBQUJOcmVvNEVrWUVOVngzYkRSblFXdlJQUDZzdFNVQzRXNG1hVWFYZGpfdWFlZE9yUElxQXF6QQ?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Dr. B.K. Modi announces launch of an AI-Driven, Sustainable and Technology-Led construction venture to transform India's real estate industry - Big News Network.com", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMijgJBVV95cUxOQmdyNTVuMnpfUzlRTEpQMjdyM0hsTDYtYU9hcUhyWlNqQWdNaF9EcnhtcHYtT2gwTHJ2cWIySGhBQ1lDQ1NJd1FHTGdTaFJCU080SWs0Qm1OcGluUmkxbDJwVlhNUVNqbGVNNnRBNEVjN2h4NUlvOXRfZnp3U2c2d01NeE9zcGM3S296a2VHRlV5bVhlS01lNmo1cWYta3pNeFRlNFBKZkZyTVZKbzVlQVdlYUJtMmFDUEZNdFZlVzJjNThabVh1TWE1YW5CVUJYUFhDSGF4Ykt0eDBzR2t4WWxpaVV2TzJaV2ZYcUZzbXVQTzNERjJlRnJpXzRhTVIxTjhuRTdHUmtnV3RYV1E?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Artificial intelligence is displacing investment in construction ᐉ News from Fakti.bg - Properties - Fakti.bg", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPQWhVYmhPLWcxUkl3eXlyX3N1Qjg3X1pNNGtFenhRZm9tQ0Z2blY3SkZzR2tEa1ZqN2dSUWNPdjZ6ZUowOGFpQnBRanpWaFcwZ05WRmhCR1dPMDg2Q3V1QzlUQmJ0WW1qMHZsZVRnMFVtRHdhRmEwRmdVZHpYT21Dbk50dU1QWFljNW5EUHlKVm90dEtUU2hVSENySFZLSFk?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Business News - LatestLY", "source": "Google Actualités EN (AI in AEC)", "lien": "https://news.google.com/rss/articles/CBMiqAJBVV95cUxOM3ZoQ2gtQWVmY0dvS3pNQi14MEJxMnNmUjAwemlfazNRdmllTTBST3NFeTd3bGxSLUlnTDQwU3MyNEdlMG9RMlFFLVliNVFkc2RmbHdqTTBsWHZUTGdvVTluMkR6M3VSeXJEZmJoc1lVNlBXeGRsRjlzbHlKUWRDdHQxcjhDRnJrR0xHcW13TWVMU3J5SlBwQnRhSEZQWTBGZDFiTC1zVFJMczd4REQzZW51bHpkZF9RbVFNMDhWaE4xXzFaYVVKZnlIaDdnRlpJT014QWVtWGg2a0tZRUNRQkw3dWlxelZNTm9zWkpZeWJYcUtmdHROMUthNmx3N3hBWEk1TjQzZy1aWFVHMlMxX1I5M1ZuM25XS3UtUUZHaUxsSndwOFMtZNIBrgJBVV95cUxNYjVGcGVGZUhuQ1phYmZ2T2dLM2hiQjNPY2w1ek1DbGhhS3JYYUJZM0xpWGx0YWtnM2pfa0UzQVNDbnkxVE14RGJtY2lpQnZjcWtSVkpaaVlSN0s1SGxBNTMwbV9sSEVNdG93Mk9Ub2hNeFREN1NnNzZXY3ZsSHNRaWlaUGotR2lJQlViVkhMVDZNUjRWOExPTWFvSFlyUWF1SGRwTG8ySnVqTTY0RmhnakRQM25SZF9mUno1S2I2WEFqa1NYUU5pLXdBUTRvUmZ0aXdXM2YzcFh3OE02d0hJcjVqZFFiMDdWQU43cy16X3JMRC03RVUxZVdBOW5Ga2NvU2o2Qk5vZGdZNEZLSExIVFFzQnpXeF9JU1BtMHBhMmN6OXR5LV9wT2lzR1Zvdw?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Agentic Robot Creation through Generation, Verification, and Revision", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.17881v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "How the Classical Baseline Shapes Machine-Learning Speed Claims in Topology Optimization", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.16051v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Joint Discrete and SE(3) Diffusion for Protein Interface Design", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.14699v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Observation-Referenced Tissue Deformation Forecasting with Tool-Driven and Residual Dynamics", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.14191v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Splat2Act: From Captured Scenes to Personalized VLA Manipulation", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.13945v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Reliability-Aware Future Conditioning for Temporally Robust Robot Manipulation", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.11956v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "DOGS: Design-Space Sampling for Prompt-Driven Logo Generation", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.10760v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "PXtal: Learning to Align Powder X-Ray Diffraction and Crystal Structures under Information Asymmetry across Modalities", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.10653v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "CAFE+FNO: Fourier Kernel Generation via Multiplicative Feature Composition", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.10105v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Exact Calibration and Sharp Risk Geometry for Volume-Sampled Ridge Regression", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.07721v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Robust 2D Traversability Mapping for Construction AMRs via Failure-Mode-Aware Fusion of LiDAR Geometry and Monocular Semantics", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.05505v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Autoware in Construction: Gap Analysis and LiDAR Perception Toward Off-Road Autonomous Driving", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.04187v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "TouchTherm: Building Multimodal Digital Twins of Objects for Tactile and Thermal Rendering", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.01943v2", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "LiteReality-Agent: An Agentic System for Interactable 3D Indoor Scene Reconstruction", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2610.01863v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "MVP-SLAM: Multi-Camera Visual-Inertial Floorplan-Prior SLAM", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2609.39596v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Digital Twin Modeling of Quantum Dynamical Systems: Dissipative Quantum Reservoir Computing", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2609.36901v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Large Language Models for Model-Based Robot Design", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2609.33423v3", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "Auditing Quality Filters for Long-Tail Human Data Curation", "source": "arXiv (IA x construction)", "lien": "https://arxiv.org/abs/2609.31896v1", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}, {"titre": "BCTQ – Grand Chantier 2026 | Quelles priorités pour l’avenir de notre industrie? - CTVM-info", "source": "Google Actualités FR (IA & BTP)", "lien": "https://news.google.com/rss/articles/CBMiYEFVX3lxTE5SU21sOWpxSU9TbUliRTVwQ0NPU2t4SVQ1MjRXQ2w1ZjVVS0hsVkNQV19OeU5RUzhJdDhXY0U4MmhwOURjaFNCbkV6UEI4Q0VoNWdRVjhVZ0x1emZZZnEwVg?oc=5", "raison": "Filtre lexical (absence de mots-clés IA ou BTP)"}];
+    const SEUIL = 7.5;
+    let ongletActif = 'valides';
+    let filtreMotifRejet = 'tous';
+    const estDemo = window.location.pathname.includes('demo');
+    const isFileProtocol = window.location.protocol === 'file:';
+
+    const protege = t => String(t || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    function notifier(message, type = 'info', duree = 6000) {
+      const toast = document.getElementById('toast');
+      toast.className = 'status-toast toast-' + type;
+      toast.textContent = message;
+      toast.style.display = 'block';
+      if (duree > 0) setTimeout(() => { toast.style.display = 'none'; }, duree);
+    }
+
+    function basculerTab(tab) {
+      ongletActif = tab;
+      ['valides', 'rejets', 'rapport', 'sources', 'notation', 'archi'].forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (btn) btn.className = t === tab ? 'tab-btn active' : 'tab-btn';
+      });
+      document.getElementById('controls-valides').style.display = tab === 'valides' ? 'flex' : 'none';
+      afficher();
+    }
+
+    function updateKPIs() {
+      document.getElementById('kpi-total').textContent = DONNEES.length;
+      document.getElementById('kpi-chaud').textContent = DONNEES.filter(d => d.score >= SEUIL).length;
+      document.getElementById('kpi-conception').textContent = DONNEES.filter(d => d.phase === 'Conception').length;
+      document.getElementById('kpi-chantier').textContent = DONNEES.filter(d => d.phase === 'Chantier').length;
+      document.getElementById('kpi-exploitation').textContent = DONNEES.filter(d => d.phase === 'Exploitation').length;
+      document.getElementById('count-valides').textContent = DONNEES.length;
+      document.getElementById('count-rejets').textContent = REJETS.length;
+    }
+
+    function setFiltreRejet(motif) {
+      filtreMotifRejet = motif;
+      afficher();
+    }
+
+    async function afficher() {
+      const conteneur = document.getElementById('liste');
+      const p_prefix = estDemo ? 'demo_' : '';
+
+      // 1. VUE REJETÉS / VÉRIFICATION (REGROUPÉS PAR MOTIF)
+      if (ongletActif === 'rejets') {
+        const rejetsLexical = REJETS.filter(r => (r.raison || '').toLowerCase().includes('lexical'));
+        const rejetsDoublons = REJETS.filter(r => (r.raison || '').toLowerCase().includes('sens') || (r.raison || '').toLowerCase().includes('connu') || (r.raison || '').toLowerCase().includes('doublon'));
+        const rejetsLLM = REJETS.filter(r => (r.raison || '').toLowerCase().includes('llm') || (r.raison || '').toLowerCase().includes('hors sujet'));
+
+        let rejetsAffiches = REJETS;
+        if (filtreMotifRejet === 'lexical') rejetsAffiches = rejetsLexical;
+        else if (filtreMotifRejet === 'doublons') rejetsAffiches = rejetsDoublons;
+        else if (filtreMotifRejet === 'llm') rejetsAffiches = rejetsLLM;
+
+        document.getElementById('nb').textContent = rejetsAffiches.length + ' rejets affichés';
+
+        let html = `
+          <div class="rejets-filter-bar">
+            <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600; margin-right:0.35rem;">Filtrer par motif :</span>
+            <button class="rejet-pill ${filtreMotifRejet === 'tous' ? 'active' : ''}" onclick="setFiltreRejet('tous')">Tous (${REJETS.length})</button>
+            <button class="rejet-pill ${filtreMotifRejet === 'lexical' ? 'active' : ''}" onclick="setFiltreRejet('lexical')">Filtre lexical (${rejetsLexical.length})</button>
+            <button class="rejet-pill ${filtreMotifRejet === 'doublons' ? 'active' : ''}" onclick="setFiltreRejet('doublons')">Doublons sémantiques / URL (${rejetsDoublons.length})</button>
+            <button class="rejet-pill ${filtreMotifRejet === 'llm' ? 'active' : ''}" onclick="setFiltreRejet('llm')">Refus IA Gemini (${rejetsLLM.length})</button>
+          </div>
+        `;
+
+        if (!rejetsAffiches.length) {
+          html += '<div class="empty">Aucun article rejeté dans cette catégorie.</div>';
+          conteneur.innerHTML = html;
+          return;
+        }
+
+        html += rejetsAffiches.map((r, i) => {
+          const indexGlobal = REJETS.indexOf(r) + 1;
+          return `
+            <div class="carte" style="border-left: 3px solid var(--danger);">
+              <div class="carte-header">
+                <div class="carte-title-wrapper">
+                  <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted);">#${indexGlobal}</span>
+                  <a href="${protege(r.lien)}" target="_blank" rel="noopener" class="carte-title">${protege(r.titre)}</a>
+                  <a href="${protege(r.lien)}" target="_blank" rel="noopener" class="icon-link" title="Consulter l'article original">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                  </a>
+                </div>
+                <span class="tag" style="background:var(--danger-bg); color:var(--danger); border-color:var(--danger-border); font-weight:600;">Écarté</span>
+              </div>
+              <div class="meta-tags">
+                <span class="tag">${protege(r.source)}</span>
+                <span class="tag" style="background:#fef3c7; color:#92400e; border-color:#fde68a;">Motif : ${protege(r.raison)}</span>
+              </div>
+              <div style="margin-top:0.75rem; padding-top:0.6rem; border-top:1px dashed var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+                <span style="font-size:0.78rem; color:var(--text-muted);">Vérification humaine (Human-in-the-Loop) :</span>
+                <button class="btn btn-success" onclick="repecherArticle(${indexGlobal}, this)" style="padding:0.3rem 0.75rem; font-size:0.78rem;">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Repêcher cet article
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        conteneur.innerHTML = html;
+        return;
+      }
+
+      // 2. VUE RAPPORT DU JOUR (CANEVAS EXÉCUTIF AÉRÉ)
+      if (ongletActif === 'rapport') {
+        const prioritaires = DONNEES.filter(d => d.score >= SEUIL);
+        const rejetsLexical = REJETS.filter(r => (r.raison || '').toLowerCase().includes('lexical')).length;
+        const rejetsDoublons = REJETS.filter(r => (r.raison || '').toLowerCase().includes('sens') || (r.raison || '').toLowerCase().includes('connu') || (r.raison || '').toLowerCase().includes('doublon')).length;
+        const rejetsLLM = REJETS.filter(r => (r.raison || '').toLowerCase().includes('llm') || (r.raison || '').toLowerCase().includes('hors sujet')).length;
+        const lienRapportMD = isFileProtocol ? `../data/${p_prefix}rapport.md` : `/api/fichier?nom=rapport.md&demo=${estDemo ? 1 : 0}&telecharger=1`;
+
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
+              <div>
+                <div class="doc-title">Rapport Exécutif de Veille Technologique</div>
+                <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">Synthèse décisionnelle et cartographie stratégique du jour • IA x BTP & Architecture</div>
+              </div>
+              <a href="${lienRapportMD}" download="${p_prefix}rapport.md" target="_blank" class="btn" title="Télécharger le fichier source Markdown">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Télécharger rapport.md
+              </a>
+            </div>
+
+            <!-- SECTION 1 : SYNTHÈSE DÉCISIONNELLE -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">1. Synthèse Décisionnelle & Indicateurs Clés</h3>
+            <table class="doc-table" style="margin-top:0; margin-bottom:1.75rem;">
+              <thead>
+                <tr>
+                  <th>Indicateur</th>
+                  <th>Valeur</th>
+                  <th>Interprétation & Impact pour les équipes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Innovations retenues en base</strong></td>
+                  <td><strong style="color:var(--text);">${DONNEES.length}</strong></td>
+                  <td>Corpus qualifié d'innovations validées par le double filtrage (lexique + IA).</td>
+                </tr>
+                <tr>
+                  <td><strong>Signaux prioritaires (Score &ge; ${SEUIL}/10)</strong></td>
+                  <td><strong style="color:var(--accent);">${prioritaires.length}</strong></td>
+                  <td>Innovations majeures à fort impact immédiat (BIM, sécurité chantier, automatisation).</td>
+                </tr>
+                <tr>
+                  <td><strong>Articles en quarantaine (Audit)</strong></td>
+                  <td><strong>${REJETS.length}</strong></td>
+                  <td>Articles hors sujet, doublons vectoriels ou faux amis filtrés pour audit humain.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- SECTION 2 : TOP SIGNAUX PRIORITAIRES -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">2. Top Signaux & Alertes Prioritaires (Score &ge; ${SEUIL}/10)</h3>
+            <div style="display:grid; gap:0.75rem; margin-bottom:1.75rem;">
+              ${prioritaires.slice(0, 4).map(p => `
+                <div style="background:#f8fafc; border:1px solid var(--border); border-left:3px solid var(--accent); padding:0.9rem 1.1rem; border-radius:4px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.35rem;">
+                    <div style="display:flex; align-items:center; gap:0.4rem; flex:1;">
+                      <a href="${protege(p.lien)}" target="_blank" rel="noopener" style="font-weight:600; font-size:0.92rem; color:var(--text); text-decoration:none;">
+                        ${protege(p.titre)}
+                      </a>
+                      <a href="${protege(p.lien)}" target="_blank" rel="noopener" class="icon-link" title="Consulter l'article original">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                      </a>
+                    </div>
+                    <span class="score-badge score-high" style="font-size:0.85rem; padding:0.15rem 0.5rem;">${p.score.toFixed(1)} / 10</span>
+                  </div>
+                  <div class="meta-tags" style="margin-bottom:0.4rem;">
+                    <span class="tag">${protege(p.phase)}</span>
+                    <span class="tag">TRL ${p.trl}/9</span>
+                    <span class="tag">${protege(p.source)}</span>
+                    <span class="tag">CRAAP: ${p.fiabilite}/10</span>
+                  </div>
+                  <div style="font-size:0.85rem; color:#334155; line-height:1.5;">${protege(p.resume_fr)}</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- SECTION 3 : RÉPARTITION CYCLE DE VIE -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">3. Répartition par Cycle de Vie du Bâtiment</h3>
+            <table class="doc-table" style="margin-top:0; margin-bottom:1.75rem;">
+              <thead>
+                <tr>
+                  <th>Phase du Cycle</th>
+                  <th>Volume</th>
+                  <th>Principaux axes technologiques observés</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Conception & Modélisation BIM</strong></td>
+                  <td><strong>${DONNEES.filter(d => d.phase === 'Conception').length} fiches</strong></td>
+                  <td>Génération de maquettes Revit/IFC par IA, optimisation générative de plans, stations de travail IA locales.</td>
+                </tr>
+                <tr>
+                  <td><strong>Chantier, Robotique & Sécurité</strong></td>
+                  <td><strong>${DONNEES.filter(d => d.phase === 'Chantier').length} fiches</strong></td>
+                  <td>Vision par ordinateur pour détection des EPI (casques), robots de navigation autonome, chantiers intelligents.</td>
+                </tr>
+                <tr>
+                  <td><strong>Exploitation & Jumeaux Numériques</strong></td>
+                  <td><strong>${DONNEES.filter(d => d.phase === 'Exploitation').length} fiches</strong></td>
+                  <td>Jumeaux numériques (Digital Twins), maintenance prédictive des équipements CVC, optimisation énergétique.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- SECTION 4 : BILAN QUALITÉ & FILTRAGE -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">4. Bilan Qualité, Filtrage & Esprit Critique (Human-in-the-Loop)</h3>
+            <table class="doc-table" style="margin-top:0; margin-bottom:1.75rem;">
+              <thead>
+                <tr>
+                  <th>Niveau de Contrôle</th>
+                  <th>Articles écartés</th>
+                  <th>Objectif & Rigueur scientifique</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Filtre lexical (Regex)</strong></td>
+                  <td>${rejetsLexical}</td>
+                  <td>Élimination des actualités généralistes sans mots-clés du BTP ou de l'IA.</td>
+                </tr>
+                <tr>
+                  <td><strong>Dédoublonnage vectoriel</strong></td>
+                  <td>${rejetsDoublons}</td>
+                  <td>Suppression des clones de communiqués de presse et des articles déjà répertoriés (similarité cosinus &ge; 85%).</td>
+                </tr>
+                <tr>
+                  <td><strong>Validation sémantique LLM</strong></td>
+                  <td>${rejetsLLM}</td>
+                  <td>Neutralisation des faux amis (ex: architecture informatique, campus immobilier sans IA).</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- SECTION 5 : RECOMMANDATIONS OPÉRATIONNELLES -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.5rem;">5. Recommandations Opérationnelles pour les Équipes</h3>
+            <ul style="font-size:0.85rem; color:#334155; line-height:1.65; padding-left:1.25rem;">
+              <li><strong>Priorité BIM :</strong> Tester les assistants IA d'automatisation des nomenclatures et vérification QA/QC sur Revit pour réduire les temps d'études.</li>
+              <li><strong>Sécurité Terrain :</strong> Déployer des pilotes de vision par ordinateur sur site pour la conformité sécurité des ouvriers (détection port de casque).</li>
+              <li><strong>Conformité Réglementaire :</strong> Encadrer l'usage des caméras d'IA sur chantier conformément au Code du numérique béninois et aux exigences de l'APDP.</li>
+            </ul>
+          </div>
+        `;
+        return;
+      }
+
+      // 3. VUE SOURCES & GRILLE CRAAP
+      if (ongletActif === 'sources') {
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div class="formula-box">
+              <strong>Formule de calcul de la note de source (ramenée sur 10) :</strong><br>
+              Note Source = [ (Actualité + Pertinence + Autorité + Exactitude + Objectivité) / 25 ] x 10<br>
+              <em>Chaque critère CRAAP est noté de 1 à 5. Le total obtenu sur 25 est divisé par 25 puis multiplié par 10 pour obtenir une note standardisée sur 10.</em>
+            </div>
+
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Type</th>
+                  <th>Act. (C)</th>
+                  <th>Pert. (R)</th>
+                  <th>Aut. (A)</th>
+                  <th>Exact. (A)</th>
+                  <th>Obj. (P)</th>
+                  <th>Total /25</th>
+                  <th>Note CRAAP</th>
+                  <th>Analyse critique & Biais identifié</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>AEC Magazine</strong></td>
+                  <td>Presse spécialisée</td>
+                  <td>5 / 5</td>
+                  <td>5 / 5</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>23 / 25</td>
+                  <td><strong style="color:var(--success);">9.2 / 10</strong></td>
+                  <td>Référence internationale indépendante des logiciels BIM/AEC. Tests de banc d'essai réels, très faible complaisance.</td>
+                </tr>
+                <tr>
+                  <td><strong>Construction Dive</strong></td>
+                  <td>Presse métier BTP</td>
+                  <td>5 / 5</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>22 / 25</td>
+                  <td><strong style="color:var(--success);">8.8 / 10</strong></td>
+                  <td>Média professionnel reconnu sur la réalité des chantiers (sécurité, coûts, litiges, robotique ouvrière).</td>
+                </tr>
+                <tr>
+                  <td><strong>arXiv (cs.AI, cs.CV)</strong></td>
+                  <td>Recherche scientifique</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>20 / 25</td>
+                  <td><strong style="color:var(--accent);">8.0 / 10</strong></td>
+                  <td>Pointe mondiale de l'innovation (preprints scientifiques). Rigueur technique forte, mais absence de validation par les pairs (peer-review).</td>
+                </tr>
+                <tr>
+                  <td><strong>ArchDaily</strong></td>
+                  <td>Portail architectural</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>20 / 25</td>
+                  <td><strong style="color:var(--accent);">8.0 / 10</strong></td>
+                  <td>Média architectural mondial de référence. Biais esthétique marqué (focus sur le rendu visuel et la forme plus que sur la technique).</td>
+                </tr>
+                <tr>
+                  <td><strong>Google Actualités (Bilingue)</strong></td>
+                  <td>Agrégateur RSS</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>19 / 25</td>
+                  <td><strong>7.6 / 10</strong></td>
+                  <td>Capte les signaux faibles et la presse quotidienne. Qualité hétérogène nécessitant un double filtrage automatisé strict.</td>
+                </tr>
+                <tr>
+                  <td><strong>Graphisoft (Archicad)</strong></td>
+                  <td>Éditeur commercial</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>1 / 5</td>
+                  <td>17 / 25</td>
+                  <td><strong style="color:var(--warning);">6.8 / 10</strong></td>
+                  <td>Biais commercial et publicitaire évident : Objectivité pénalisée à 1/5 pour neutraliser l'autopromotion logicielle.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      // 4. VUE NOTATION DES ARTICLES
+      if (ongletActif === 'notation') {
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div class="doc-title">Grille & Notation Multicritère des Articles</div>
+
+            <div class="formula-box">
+              <strong>Formule du Score Global de l'Article (sur 10) :</strong><br>
+              Score = (0.35 x Pertinence IA) + (0.25 x Fiabilité Source CRAAP) + (0.20 x Impact Métier BTP) + (0.20 x Fraîcheur Temporelle)<br>
+              <em>Seuil d'alerte prioritaire : Score >= ${SEUIL} / 10</em>
+            </div>
+
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Critère</th>
+                  <th>Poids</th>
+                  <th>Méthode d'évaluation</th>
+                  <th>Justification du poids accordé</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Pertinence Thématique</strong></td>
+                  <td><strong>35 %</strong></td>
+                  <td>Note de 1 à 10 attribuée par Gemini après analyse sémantique du texte complet.</td>
+                  <td>Critère prioritaire absolu : élimine les « faux amis », c'est-à-dire les mots qui ressemblent au domaine mais n'ont aucun rapport (ex: « architecture informatique » chez Intel/NVIDIA au lieu d'un bâtiment, ou « chantier » employé au sens figuré comme « chantier des retraites »).</td>
+                </tr>
+                <tr>
+                  <td><strong>Fiabilité de la Source</strong></td>
+                  <td><strong>25 %</strong></td>
+                  <td>Note CRAAP de la source émettrice ramenée sur 10 (ex: AEC Mag = 9.2, Graphisoft = 6.8).</td>
+                  <td>Garantit que les articles issus de revues rigoureuses pèsent plus lourd que les communiqués marketing de vendeurs.</td>
+                </tr>
+                <tr>
+                  <td><strong>Impact Métier BTP</strong></td>
+                  <td><strong>20 %</strong></td>
+                  <td>Évaluation LLM du potentiel de transformation concrète (sécurité chantier, gain temps BIM, coûts).</td>
+                  <td>Distingue une véritable avancée opérationnelle d'une simple annonce spéculative sans application terrain.</td>
+                </tr>
+                <tr>
+                  <td><strong>Fraîcheur Temporelle</strong></td>
+                  <td><strong>20 %</strong></td>
+                  <td>Récence de la publication : note de 10/10 pour les articles parus dans les 7 derniers jours, 7 à 8/10 pour les articles de 2 à 3 semaines, et 5/10 au-delà d'un mois.</td>
+                  <td>Favorise les informations récentes et les signaux faibles pour alerter rapidement l'équipe, tout en conservant les publications de référence du mois.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="background:#f8fafc; border:1px solid var(--border); border-left:3px solid var(--accent); padding:0.85rem 1rem; border-radius:4px; margin-top:1.25rem;">
+              <strong>Pourquoi la maturité technologique (TRL) n'est-elle pas un critère dans la note sur 10 ?</strong><br>
+              <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.5; margin-top:0.35rem;">
+                Le <strong>Score sur 10</strong> mesure la valeur <em>informationnelle</em> d'une publication (est-ce fiable ? récent ? pertinent ?).<br>
+                Le <strong>TRL (1 à 9)</strong> mesure quant à lui le <em>stade d'avancement technique</em> de l'innovation décrite.<br>
+                Si le TRL était inclus dans la formule avec un fort coefficient, les articles de recherche scientifique fondamentale de pointe (comme les preprints sur arXiv, notés TRL 2 ou 3) recevraient de mauvaises notes et seraient éliminés du tableau de bord !<br>
+                Le TRL est donc utilisé comme <strong>indicateur de classification</strong> : il permet à l'ingénieur de distinguer immédiatement une théorie de laboratoire prometteuse (TRL 1-3) d'un outil directement déployable sur chantier (TRL 7-9).
+              </div>
+            </div>
+
+            <div style="margin-top:1.5rem;">
+              <h4 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.5rem;">Échelle de Maturité Technologique (TRL 1 à 9) :</h4>
+              <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.5; margin-bottom:0.75rem;">
+                Le TRL (<em>Technology Readiness Level</em>, norme NASA / ISO 16290) qualifie le degré de maturité d'une innovation :
+              </p>
+              <table class="doc-table">
+                <tr><td style="width:120px;"><strong>TRL 1 à 3</strong></td><td><strong>Recherche Fondamentale & Preuve de Concept</strong> : Publications théoriques, formulations mathématiques (ex: preprints arXiv).</td></tr>
+                <tr><td><strong>TRL 4 à 6</strong></td><td><strong>Développement & Validation en Laboratoire</strong> : Prototypes algorithmiques, plugins bêta testés sur maquettes numériques témoins.</td></tr>
+                <tr><td><strong>TRL 7 à 9</strong></td><td><strong>Déploiement Opérationnel Réel</strong> : Systèmes certifiés utilisés sur de vrais chantiers de construction ou logiciels commerciaux déployés (ex: Autodesk, GS E&C).</td></tr>
+              </table>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // 5. VUE COMMENT ÇA MARCHE ? (ARCHITECTURE & PIPELINE)
+      if (ongletActif === 'archi') {
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div class="doc-title">Architecture Technique & Pipeline d'Automatisation</div>
+
+            <div class="formula-box">
+              <strong>Pipeline de Traitement en 5 Étapes :</strong><br>
+              1. Collecte Push (Flux RSS/Atom) ➔ 2. Filtre Lexical (Regex) ➔ 3. Dédoublonnage Vectoriel (Embeddings cosinus >= 0.85)<br>
+              ➔ 4. Invalidation Sémantique & Analyse LLM (Gemini) ➔ 5. Scoring Multicritère & Restitution Web / CSV / Alertes
+            </div>
+
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Module / Fichier</th>
+                  <th>Rôle technique dans le dispositif</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>collecte.py</code></td>
+                  <td>Moissonne les flux RSS/Atom distants avec assainissement regex XML des entités malformées et gestion des timeouts.</td>
+                </tr>
+                <tr>
+                  <td><code>filtre.py</code></td>
+                  <td>Filtre n°1 lexical rapide : expressions régulières bilingues (FR/EN) sur les thématiques BIM, sécurité, jumeaux et IA.</td>
+                </tr>
+                <tr>
+                  <td><code>doublons.py</code> & <code>embeddings.py</code></td>
+                  <td>Normalisation des URLs et dédoublonnage vectoriel sémantique par similarité cosinus (seuil 0.85) pour éliminer les clones d'articles.</td>
+                </tr>
+                <tr>
+                  <td><code>llm.py</code> & <code>gemini.py</code></td>
+                  <td>Filtre n°2 sémantique avec Gemini : rejet des faux amis, classification par phase du bâtiment, évaluation TRL et résumé FR.</td>
+                </tr>
+                <tr>
+                  <td><code>scoring.py</code></td>
+                  <td>Calculateur déterministe de la note sur 10 croisant CRAAP, pertinence IA, impact chantier et fraîcheur exponentielle.</td>
+                </tr>
+                <tr>
+                  <td><code>sortie.py</code></td>
+                  <td>Écriture des fichiers de données : <code>veille.csv</code> (UTF-8 avec BOM), <code>rejets.csv</code> (traçabilité), et <code>rapport.md</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>serveur.py</code> & <code>dashboard.py</code></td>
+                  <td>Micro-serveur HTTP local (port 8000) et Observatoire Web monopage avec repêchage interactif <em>Human-in-the-Loop</em>.</td>
+                </tr>
+                <tr>
+                  <td><code>.github/workflows/veille.yml</code></td>
+                  <td>Automatisation CI/CD dans le cloud : exécute la veille quotidienne à 08:00 (Bénin) et republie sur GitHub Pages.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      // 6. VUE FICHES VALIDÉES
+      const q = document.getElementById('recherche').value.toLowerCase().trim();
+      const phase = document.getElementById('phase').value;
+      const min = +document.getElementById('min').value;
+      document.getElementById('val').textContent = min;
+
+      const choisis = DONNEES.filter(d => {
+        const matchPhase = !phase || d.phase === phase;
+        const matchScore = d.score >= min;
+        const matchQ = !q || (d.titre + ' ' + d.resume_fr + ' ' + d.source).toLowerCase().includes(q);
+        return matchPhase && matchScore && matchQ;
+      }).sort((a, b) => b.score - a.score);
+
+      document.getElementById('nb').textContent = choisis.length + ' fiches affichées';
+
+      if (!choisis.length) {
+        conteneur.innerHTML = '<div class="empty">Aucune fiche ne correspond à vos critères de recherche.</div>';
+        return;
+      }
+
+      conteneur.innerHTML = choisis.map(d => {
+        const estChaud = d.score >= SEUIL;
+        const phaseClass = d.phase === 'Conception' ? 'tag-conception' : d.phase === 'Chantier' ? 'tag-chantier' : 'tag-exploitation';
+        return `
+          <div class="carte">
+            <div class="carte-header">
+              <div class="carte-title-wrapper">
+                <a href="${protege(d.lien)}" target="_blank" rel="noopener" class="carte-title">
+                  ${protege(d.titre)}
+                </a>
+                <a href="${protege(d.lien)}" target="_blank" rel="noopener" class="icon-link" title="Consulter l'article original">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+              <div class="score-badge ${estChaud ? 'score-high' : ''}">${d.score.toFixed(1)} / 10</div>
+            </div>
+            <div class="meta-tags">
+              <span class="tag ${phaseClass}">${protege(d.phase)}</span>
+              <span class="tag">TRL ${d.trl} / 9</span>
+              <span class="tag">${protege(d.source)}</span>
+              <span class="tag">CRAAP Source: ${d.fiabilite}/10</span>
+              <span class="tag">${protege(d.date_pub || d.date_collecte)}</span>
+              <span class="tag">Méthode: ${protege(d.methode)}</span>
+            </div>
+            <div class="resume">${protege(d.resume_fr)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ACTIONS BACKEND
+    async function declencherVeille(btn) {
+      if (isFileProtocol) {
+        alert(`Information : Pour déclencher la collecte en direct depuis le navigateur :\n\n1. Lancez dans un terminal : python serveur.py\n2. Ouvrez http://localhost:8000`);
+        return;
+      }
+      btn.disabled = true;
+      const init = btn.textContent;
+      btn.textContent = 'Collecte en cours...';
+      notifier('Collecte des flux et analyse LLM en cours...', 'info', 0);
+      try {
+        const res = await fetch('/api/lancer_veille', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ demo: estDemo })
+        });
+        const d = await res.json();
+        if (d.succes) {
+          notifier(`Veille terminée : ${d.stats.nouvelles} nouvelles fiches. Rechargement...`, 'success', 4000);
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          notifier('Erreur : ' + (d.erreur || 'Échec de la collecte'), 'error');
+        }
+      } catch (e) {
+        notifier('Erreur de communication avec le serveur local.', 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = init;
+    }
+
+    async function repecherArticle(index, btn) {
+      if (isFileProtocol) {
+        alert(`Information : Le repêchage en direct nécessite le serveur local :\n\n1. Lancez dans un terminal : python serveur.py\n2. Ouvrez http://localhost:8000`);
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Analyse...';
+      try {
+        const res = await fetch('/api/repecher', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ index: index, demo: estDemo })
+        });
+        if (res.ok) {
+          const d = await res.json();
+          alert(`Article repêché et validé :\n\n${d.article.titre}\n\nScore : ${d.article.score}/10 | Phase : ${d.article.phase}`);
+          window.location.reload();
+          return;
+        }
+      } catch (e) {
+        alert('Erreur : assurez-vous que python serveur.py est bien lancé.');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Repêcher cet article';
+    }
+
+    async function reinitialiserDemo(btn) {
+      if (isFileProtocol) {
+        alert(`Information : La réinitialisation nécessite le serveur local.\nLancez 'python serveur.py' et ouvrez http://localhost:8000.`);
+        return;
+      }
+      if (!confirm('Réinitialiser les données de démo et relancer le jeu de test ?')) return;
+      btn.disabled = true;
+      notifier('Réinitialisation du jeu de données démo...', 'info', 0);
+      try {
+        const res = await fetch('/api/reset_demo', { method: 'POST' });
+        if (res.ok) {
+          notifier('Démo réinitialisée. Rechargement...', 'success', 3000);
+          setTimeout(() => window.location.reload(), 1000);
+          return;
+        }
+      } catch (e) {
+        notifier('Erreur lors de la réinitialisation.', 'error');
+      }
+      btn.disabled = false;
+    }
+
+    function initialiserControle() {
+      const p_prefix = estDemo ? 'demo_' : '';
+      const statutEl = document.getElementById('statut-serveur');
+      const btnExcelVeille = document.getElementById('btn-excel-veille');
+      const btnCsvVeille = document.getElementById('btn-csv-veille');
+      const btnExcelRejets = document.getElementById('btn-excel-rejets');
+
+      if (isFileProtocol) {
+        if (statutEl) {
+          statutEl.className = 'status-pill status-offline';
+          statutEl.innerHTML = '<span class="dot"></span> Mode Hors-Ligne';
+        }
+        if (btnExcelVeille) btnExcelVeille.href = `../data/${p_prefix}veille.xlsx`;
+        if (btnCsvVeille) btnCsvVeille.href = `../data/${p_prefix}veille.csv`;
+        if (btnExcelRejets) btnExcelRejets.href = `../data/${p_prefix}rejets.xlsx`;
+      } else if (window.location.hostname.includes('github.io')) {
+        if (statutEl) {
+          statutEl.className = 'status-pill status-cloud';
+          statutEl.innerHTML = '<span class="dot"></span> Déploiement Cloud';
+        }
+        if (btnExcelVeille) btnExcelVeille.href = `../data/${p_prefix}veille.xlsx`;
+        if (btnCsvVeille) btnCsvVeille.href = `../data/${p_prefix}veille.csv`;
+        if (btnExcelRejets) btnExcelRejets.href = `../data/${p_prefix}rejets.xlsx`;
+      } else {
+        if (statutEl) {
+          statutEl.className = 'status-pill status-online';
+          statutEl.innerHTML = '<span class="dot"></span> Serveur Actif';
+        }
+        if (btnExcelVeille) btnExcelVeille.href = `/api/fichier?nom=veille.xlsx&demo=${estDemo ? 1 : 0}&telecharger=1`;
+        if (btnCsvVeille) btnCsvVeille.href = `/api/fichier?nom=veille.csv&demo=${estDemo ? 1 : 0}&telecharger=1`;
+        if (btnExcelRejets) btnExcelRejets.href = `/api/fichier?nom=rejets.xlsx&demo=${estDemo ? 1 : 0}&telecharger=1`;
+      }
+    }
+
+    document.getElementById('recherche').oninput = afficher;
+    document.getElementById('phase').onchange = afficher;
+    document.getElementById('min').oninput = afficher;
+    updateKPIs();
+    initialiserControle();
+    afficher();
+  </script>
+</body>
+</html>

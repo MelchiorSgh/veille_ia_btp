@@ -1,0 +1,146 @@
+{
+  "seuil_alerte": 7.0,
+  "jours_max": 30,
+  "sources": [
+    {
+      "nom": "AEC Magazine",
+      "type": "rss",
+      "url": "https://aecmag.com/feed/",
+      "categorie": "Presse spécialisée BIM / AEC",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 5,
+        "pertinence": 5,
+        "autorite": 5,
+        "fiabilite": 4,
+        "objectif": 4
+      }
+    },
+    {
+      "nom": "Construction Dive",
+      "type": "rss",
+      "url": "https://www.constructiondive.com/feeds/news/",
+      "categorie": "Actualité Industrie & Chantiers BTP",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 5,
+        "pertinence": 4,
+        "autorite": 5,
+        "fiabilite": 4,
+        "objectif": 4
+      }
+    },
+    {
+      "nom": "ArchDaily",
+      "type": "rss",
+      "url": "https://www.archdaily.com/feed",
+      "categorie": "Architecture & Design International",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 5,
+        "pertinence": 4,
+        "autorite": 4,
+        "fiabilite": 4,
+        "objectif": 3
+      }
+    },
+    {
+      "nom": "Canadian Architect",
+      "type": "rss",
+      "url": "https://www.canadianarchitect.com/feed/",
+      "categorie": "Pratique Architecturale & Règlements",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 4,
+        "pertinence": 3,
+        "autorite": 4,
+        "fiabilite": 4,
+        "objectif": 3
+      }
+    },
+    {
+      "nom": "Common Edge",
+      "type": "rss",
+      "url": "https://commonedge.org/feed/",
+      "categorie": "Critique Architecturale & Débats",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 3,
+        "pertinence": 3,
+        "autorite": 3,
+        "fiabilite": 4,
+        "objectif": 2
+      }
+    },
+    {
+      "nom": "Graphisoft",
+      "type": "rss",
+      "url": "https://graphisoft.com/feed",
+      "categorie": "Éditeur Logiciel BIM (Archicad)",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 4,
+        "pertinence": 4,
+        "autorite": 4,
+        "fiabilite": 4,
+        "objectif": 1
+      }
+    },
+    {
+      "nom": "Nature (Engineering)",
+      "type": "rss",
+      "url": "https://www.nature.com/subjects/engineering.rss",
+      "categorie": "Recherche Scientifique de Référence",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 5,
+        "pertinence": 3,
+        "autorite": 5,
+        "fiabilite": 5,
+        "objectif": 4
+      }
+    },
+    {
+      "nom": "Google Actualités FR (IA & BTP)",
+      "type": "rss",
+      "url": "https://news.google.com/rss/search?q=%22intelligence+artificielle%22+(BTP+OR+architecture+OR+chantier)+when:14d&hl=fr&gl=FR&ceid=FR:fr",
+      "categorie": "Agrégateur d'actualités francophones",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 5,
+        "pertinence": 4,
+        "autorite": 3,
+        "fiabilite": 4,
+        "objectif": 3
+      }
+    },
+    {
+      "nom": "Google Actualités EN (AI in AEC)",
+      "type": "rss",
+      "url": "https://news.google.com/rss/search?q=%22artificial+intelligence%22+(construction+OR+%22civil+engineering%22+OR+architecture)+when:14d&hl=en-US&gl=US&ceid=US:en",
+      "categorie": "Agrégateur d'actualités internationales",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 5,
+        "pertinence": 4,
+        "autorite": 3,
+        "fiabilite": 4,
+        "objectif": 3
+      }
+    },
+    {
+      "nom": "arXiv (IA x construction)",
+      "type": "arxiv",
+      "url": "https://export.arxiv.org/api/query?search_query=((all:%22building+information+modeling%22+OR+all:%22generative+design%22+OR+all:%22construction+site%22+OR+all:%22scan-to-bim%22)+OR+(all:%22digital+twin%22+AND+(all:building+OR+all:infrastructure)))+AND+(cat:cs.AI+OR+cat:cs.CV+OR+cat:cs.RO+OR+cat:cs.LG)&sortBy=submittedDate&sortOrder=descending&max_results=25",
+      "categorie": "Recherche Scientifique & Prépublications",
+      "statut": "Information Blanche",
+      "craap": {
+        "actualite": 5,
+        "pertinence": 5,
+        "autorite": 3,
+        "fiabilite": 3,
+        "objectif": 4
+      }
+    }
+  ]
+}

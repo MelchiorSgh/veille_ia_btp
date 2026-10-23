@@ -1,0 +1,23 @@
+# Environnements virtuels
+.env
+.venv/
+env/
+venv/
+ENV/
+
+# Byte-compiled / cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# IDEs et éditeurs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Fichiers temporaires ou logs
+*.log
+test_*.xlsx
+test_*.csv

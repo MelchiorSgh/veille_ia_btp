@@ -1,0 +1,927 @@
+"""MODULE 10 - Tableau de bord : Observatoire Technologique & Centre de Pilotage
+Interface web professionnelle centralisée pour la veille technologique IA x BTP & Architecture :
+- Consultation des fiches validées et filtrage multicritère
+- Audit des rejets et vérification humaine (Human-in-the-Loop) avec repêchage
+- Grille d'évaluation des sources (CRAAP/AACODS) et notation des articles
+- Architecture technique et documentation du pipeline
+"""
+import json, os
+from datetime import datetime
+
+PAGE = """<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Veille IA x BTP et Architecture</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-subtle: #94a3b8;
+      --primary: #0f172a;
+      --primary-hover: #1e293b;
+      --accent: #2563eb;
+      --accent-subtle: #eff6ff;
+      --accent-border: #bfdbfe;
+      --success: #15803d;
+      --success-bg: #f0fdf4;
+      --success-border: #bbf7d0;
+      --warning: #b45309;
+      --warning-bg: #fffbeb;
+      --warning-border: #fef3c7;
+      --danger: #b91c1c;
+      --danger-bg: #fef2f2;
+      --danger-border: #fecaca;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+    /* En-tête sobre */
+    header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 1.25rem 5vw; }
+    .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+    h1 { font-size: 1.35rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .header-meta { display: flex; align-items: center; gap: 1rem; font-size: 0.82rem; color: var(--text-muted); }
+
+    /* Barre d'action supérieure */
+    .action-bar-container { background: #ffffff; border-bottom: 1px solid var(--border); padding: 0.85rem 5vw; }
+    .action-bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+    .action-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+
+    .btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.85rem; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: #ffffff; color: var(--text); transition: all 0.15s ease; text-decoration: none; }
+    .btn:hover { background: #f1f5f9; border-color: var(--border-dark); }
+    .btn-primary { background: var(--primary); color: #ffffff; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-success { background: var(--success-bg); color: var(--success); border-color: var(--success-border); }
+    .btn-success:hover { background: #dcfce7; }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+
+    .status-pill { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-weight: 500; }
+    .status-online { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .status-offline { background: #fffbeb; color: #92400e; border: 1px solid #fef3c7; }
+    .status-cloud { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .status-toast { margin-top: 0.5rem; padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.82rem; display: none; }
+    .toast-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .toast-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+    .toast-error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+    /* KPIs */
+    .kpi-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem; margin: 1.25rem 5vw 0 5vw; }
+    .kpi-card { background: var(--card-bg); padding: 0.9rem 1.1rem; border-radius: 6px; border: 1px solid var(--border); }
+    .kpi-num { font-size: 1.5rem; font-weight: 700; color: var(--text); letter-spacing: -0.02em; }
+    .kpi-label { font-size: 0.74rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.15rem; font-weight: 600; }
+
+    /* Zone de contenu */
+    main { padding: 1.25rem 5vw 3rem 5vw; }
+    .nav-tabs { display: flex; gap: 0.35rem; margin-bottom: 1.25rem; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 0.35rem; }
+    .tab-btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 0.95rem; border: 1px solid transparent; background: transparent; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 0.84rem; color: var(--text-muted); transition: all 0.12s ease; }
+    .tab-btn:hover { background: #f1f5f9; color: var(--text); }
+    .tab-btn.active { background: #ffffff; color: var(--text); border-color: var(--border); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+
+    /* Filtres fiches validées */
+    .controls { background: var(--card-bg); padding: 0.9rem 1.1rem; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 1.25rem; display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+    .control-group { display: flex; align-items: center; gap: 0.5rem; font-size: 0.84rem; }
+    select, input[type="text"], input[type="range"] { padding: 0.4rem 0.65rem; border: 1px solid var(--border); border-radius: 5px; font-size: 0.84rem; background: #ffffff; color: var(--text); }
+    select:focus, input[type="text"]:focus { outline: none; border-color: var(--primary); }
+    input[type="text"] { min-width: 260px; }
+
+    /* Grille de cartes */
+    .grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+    .carte { background: var(--card-bg); border-radius: 6px; padding: 1.15rem; border: 1px solid var(--border); transition: border-color 0.15s ease; }
+    .carte:hover { border-color: var(--border-dark); }
+    .carte-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.5rem; }
+    .carte-title-wrapper { display: flex; align-items: flex-start; gap: 0.5rem; flex: 1; }
+    .carte-title { font-size: 0.98rem; font-weight: 600; color: var(--text); text-decoration: none; line-height: 1.4; }
+    .carte-title:hover { color: var(--accent); }
+    .icon-link { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 4px; color: var(--text-muted); text-decoration: none; border: 1px solid var(--border); background: #f8fafc; flex-shrink: 0; }
+    .icon-link:hover { color: var(--text); border-color: var(--border-dark); background: #f1f5f9; }
+
+    .score-badge { font-weight: 700; font-size: 1.05rem; padding: 0.2rem 0.55rem; border-radius: 5px; background: #f1f5f9; color: var(--text); font-variant-numeric: tabular-nums; }
+    .score-high { background: var(--accent-subtle); color: var(--accent); border: 1px solid var(--accent-border); }
+
+    .meta-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.65rem; font-size: 0.75rem; }
+    .tag { padding: 0.12rem 0.45rem; border-radius: 4px; font-weight: 500; border: 1px solid var(--border); background: #f8fafc; color: var(--text-muted); }
+    .tag-conception { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+    .tag-chantier { background: #eff6ff; color: #1e40af; border-color: #bfdbfe; }
+    .tag-exploitation { background: #faf5ff; color: #6b21a8; border-color: #e9d5ff; }
+
+    .resume { color: #334155; font-size: 0.88rem; line-height: 1.5; }
+
+    /* Filtres et badges de rejet */
+    .rejets-filter-bar { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; align-items: center; }
+    .rejet-pill { font-size: 0.78rem; padding: 0.3rem 0.65rem; border-radius: 999px; border: 1px solid var(--border); background: #ffffff; color: var(--text-muted); cursor: pointer; transition: all 0.12s ease; }
+    .rejet-pill:hover { background: #f1f5f9; color: var(--text); }
+    .rejet-pill.active { background: var(--primary); color: #ffffff; border-color: var(--primary); font-weight: 600; }
+
+    /* Vues documentaires (Rapports, CRAAP, Architecture) */
+    .doc-section { background: #ffffff; border-radius: 6px; border: 1px solid var(--border); padding: 1.5rem; }
+    .doc-title { font-size: 1.15rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; letter-spacing: -0.01em; }
+    .doc-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; }
+    .doc-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 1rem; }
+    .doc-table th { background: #f8fafc; padding: 0.65rem 0.85rem; text-align: left; font-weight: 600; border-bottom: 1px solid var(--border); color: var(--text); }
+    .doc-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--border); color: #334155; }
+    .doc-table tr:last-child td { border-bottom: none; }
+    .formula-box { background: #f8fafc; border: 1px solid var(--border); border-left: 3px solid var(--primary); padding: 0.85rem 1rem; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; color: #1e293b; margin: 0.85rem 0; line-height: 1.6; }
+
+    .empty { text-align: center; padding: 3rem; color: var(--text-muted); font-size: 0.95rem; }
+    .markdown-view { background: #fff; padding: 1.5rem; border-radius: 6px; border: 1px solid var(--border); white-space: pre-wrap; font-family: ui-monospace, Menlo, monospace; font-size: 0.82rem; line-height: 1.6; color: #334155; }
+    
+    /* Icônes SVG inline */
+    .icon { width: 14px; height: 14px; stroke-width: 2; vertical-align: -2px; }
+  </style>
+</head>
+<body>
+  <!-- EN-TÊTE -->
+  <header>
+    <div class="header-content">
+      <h1>Veille IA x BTP et Architecture</h1>
+      <div class="header-meta">
+        <span>Actualisé le : __DATE__</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- BARRE D'ACTIONS -->
+  <div class="action-bar-container">
+    <div class="action-bar">
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="declencherVeille(this)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+          Lancer la veille
+        </button>
+        <a id="btn-excel-veille" href="../data/veille.xlsx" download="veille.xlsx" class="btn" title="Télécharger le classeur Excel mis en forme (.xlsx)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+          Export Excel (.xlsx)
+        </a>
+        <a id="btn-csv-veille" href="../data/veille.csv" download="veille.csv" class="btn" title="Télécharger veille au format CSV brut">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Export CSV
+        </a>
+        <a id="btn-excel-rejets" href="../data/rejets.xlsx" download="rejets.xlsx" class="btn" title="Télécharger les rejets au format Excel (.xlsx)">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+          Rejets (.xlsx)
+        </a>
+        <button class="btn" onclick="reinitialiserDemo(this)" title="Réinitialiser le jeu de test démo">
+          Réinitialiser démo
+        </button>
+      </div>
+      <div>
+        <span id="statut-serveur" class="status-pill status-offline">
+          <span class="dot"></span> Vérification...
+        </span>
+      </div>
+    </div>
+    <div id="toast" class="status-toast"></div>
+  </div>
+
+  <!-- KPI SUMMARY -->
+  <div class="kpi-container">
+    <div class="kpi-card"><div class="kpi-num" id="kpi-total">0</div><div class="kpi-label">Innovations retenues</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-chaud" style="color:var(--accent);">0</div><div class="kpi-label">Fiches prioritaires (Score >= __SEUIL__)</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-conception">0</div><div class="kpi-label">Phase Conception / BIM</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-chantier">0</div><div class="kpi-label">Phase Chantier / Sécurité</div></div>
+    <div class="kpi-card"><div class="kpi-num" id="kpi-exploitation">0</div><div class="kpi-label">Phase Exploitation / Jumeaux</div></div>
+  </div>
+
+  <main>
+    <!-- NAVIGATION PAR ONGLETS -->
+    <div class="nav-tabs">
+      <button id="tab-valides" class="tab-btn active" onclick="basculerTab('valides')">Fiches validées (<span id="count-valides">0</span>)</button>
+      <button id="tab-rejets" class="tab-btn" onclick="basculerTab('rejets')">Rejetés / Vérification (<span id="count-rejets">0</span>)</button>
+      <button id="tab-rapport" class="tab-btn" onclick="basculerTab('rapport')">Rapport du jour</button>
+      <button id="tab-sources" class="tab-btn" onclick="basculerTab('sources')">Sources & Grille CRAAP</button>
+      <button id="tab-notation" class="tab-btn" onclick="basculerTab('notation')">Grille & Notation des articles</button>
+      <button id="tab-archi" class="tab-btn" onclick="basculerTab('archi')">Comment ça marche ?</button>
+    </div>
+
+    <!-- FILTRES RECHERCHE FICHES VALIDÉES -->
+    <div class="controls" id="controls-valides">
+      <div class="control-group">
+        <label for="recherche" style="font-weight:500;">Recherche :</label>
+        <input id="recherche" type="text" placeholder="Mots-clés (ex: BIM, drone, jumeau, Autodesk)...">
+      </div>
+      <div class="control-group">
+        <label for="phase" style="font-weight:500;">Cycle de vie :</label>
+        <select id="phase">
+          <option value="">Toutes les phases</option>
+          <option value="Conception">Conception & BIM</option>
+          <option value="Chantier">Chantier & Sécurité</option>
+          <option value="Exploitation">Exploitation & Maintenance</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="min" style="font-weight:500;">Score minimum :</label>
+        <input id="min" type="range" min="0" max="10" step="0.5" value="0">
+        <span style="font-variant-numeric:tabular-nums; font-weight:600;"><span id="val">0</span> / 10</span>
+      </div>
+      <div class="control-group" style="margin-left:auto; color:var(--text-muted); font-size:0.8rem;">
+        <span id="nb">0 fiches affichées</span>
+      </div>
+    </div>
+
+    <!-- CONTENEUR DES VUES -->
+    <div id="liste" class="grid"></div>
+  </main>
+
+  <script>
+    const DONNEES = __DATA__;
+    const REJETS = __REJETS__;
+    const SEUIL = __SEUIL__;
+    let ongletActif = 'valides';
+    let filtreMotifRejet = 'tous';
+    const estDemo = window.location.pathname.includes('demo');
+    const isFileProtocol = window.location.protocol === 'file:';
+
+    const protege = t => String(t || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+    function notifier(message, type = 'info', duree = 6000) {
+      const toast = document.getElementById('toast');
+      toast.className = 'status-toast toast-' + type;
+      toast.textContent = message;
+      toast.style.display = 'block';
+      if (duree > 0) setTimeout(() => { toast.style.display = 'none'; }, duree);
+    }
+
+    function basculerTab(tab) {
+      ongletActif = tab;
+      ['valides', 'rejets', 'rapport', 'sources', 'notation', 'archi'].forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        if (btn) btn.className = t === tab ? 'tab-btn active' : 'tab-btn';
+      });
+      document.getElementById('controls-valides').style.display = tab === 'valides' ? 'flex' : 'none';
+      afficher();
+    }
+
+    function updateKPIs() {
+      document.getElementById('kpi-total').textContent = DONNEES.length;
+      document.getElementById('kpi-chaud').textContent = DONNEES.filter(d => d.score >= SEUIL).length;
+      document.getElementById('kpi-conception').textContent = DONNEES.filter(d => d.phase === 'Conception').length;
+      document.getElementById('kpi-chantier').textContent = DONNEES.filter(d => d.phase === 'Chantier').length;
+      document.getElementById('kpi-exploitation').textContent = DONNEES.filter(d => d.phase === 'Exploitation').length;
+      document.getElementById('count-valides').textContent = DONNEES.length;
+      document.getElementById('count-rejets').textContent = REJETS.length;
+    }
+
+    function setFiltreRejet(motif) {
+      filtreMotifRejet = motif;
+      afficher();
+    }
+
+    async function afficher() {
+      const conteneur = document.getElementById('liste');
+      const p_prefix = estDemo ? 'demo_' : '';
+
+      // 1. VUE REJETÉS / VÉRIFICATION (REGROUPÉS PAR MOTIF)
+      if (ongletActif === 'rejets') {
+        const rejetsLexical = REJETS.filter(r => (r.raison || '').toLowerCase().includes('lexical'));
+        const rejetsDoublons = REJETS.filter(r => (r.raison || '').toLowerCase().includes('sens') || (r.raison || '').toLowerCase().includes('connu') || (r.raison || '').toLowerCase().includes('doublon'));
+        const rejetsLLM = REJETS.filter(r => (r.raison || '').toLowerCase().includes('llm') || (r.raison || '').toLowerCase().includes('hors sujet'));
+
+        let rejetsAffiches = REJETS;
+        if (filtreMotifRejet === 'lexical') rejetsAffiches = rejetsLexical;
+        else if (filtreMotifRejet === 'doublons') rejetsAffiches = rejetsDoublons;
+        else if (filtreMotifRejet === 'llm') rejetsAffiches = rejetsLLM;
+
+        document.getElementById('nb').textContent = rejetsAffiches.length + ' rejets affichés';
+
+        let html = `
+          <div class="rejets-filter-bar">
+            <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600; margin-right:0.35rem;">Filtrer par motif :</span>
+            <button class="rejet-pill ${filtreMotifRejet === 'tous' ? 'active' : ''}" onclick="setFiltreRejet('tous')">Tous (${REJETS.length})</button>
+            <button class="rejet-pill ${filtreMotifRejet === 'lexical' ? 'active' : ''}" onclick="setFiltreRejet('lexical')">Filtre lexical (${rejetsLexical.length})</button>
+            <button class="rejet-pill ${filtreMotifRejet === 'doublons' ? 'active' : ''}" onclick="setFiltreRejet('doublons')">Doublons sémantiques / URL (${rejetsDoublons.length})</button>
+            <button class="rejet-pill ${filtreMotifRejet === 'llm' ? 'active' : ''}" onclick="setFiltreRejet('llm')">Refus IA Gemini (${rejetsLLM.length})</button>
+          </div>
+        `;
+
+        if (!rejetsAffiches.length) {
+          html += '<div class="empty">Aucun article rejeté dans cette catégorie.</div>';
+          conteneur.innerHTML = html;
+          return;
+        }
+
+        html += rejetsAffiches.map((r, i) => {
+          const indexGlobal = REJETS.indexOf(r) + 1;
+          return `
+            <div class="carte" style="border-left: 3px solid var(--danger);">
+              <div class="carte-header">
+                <div class="carte-title-wrapper">
+                  <span style="font-size:0.8rem; font-weight:700; color:var(--text-muted);">#${indexGlobal}</span>
+                  <a href="${protege(r.lien)}" target="_blank" rel="noopener" class="carte-title">${protege(r.titre)}</a>
+                  <a href="${protege(r.lien)}" target="_blank" rel="noopener" class="icon-link" title="Consulter l'article original">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                  </a>
+                </div>
+                <span class="tag" style="background:var(--danger-bg); color:var(--danger); border-color:var(--danger-border); font-weight:600;">Écarté</span>
+              </div>
+              <div class="meta-tags">
+                <span class="tag">${protege(r.source)}</span>
+                <span class="tag" style="background:#fef3c7; color:#92400e; border-color:#fde68a;">Motif : ${protege(r.raison)}</span>
+              </div>
+              <div style="margin-top:0.75rem; padding-top:0.6rem; border-top:1px dashed var(--border); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.5rem;">
+                <span style="font-size:0.78rem; color:var(--text-muted);">Vérification humaine (Human-in-the-Loop) :</span>
+                <button class="btn btn-success" onclick="repecherArticle(${indexGlobal}, this)" style="padding:0.3rem 0.75rem; font-size:0.78rem;">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Repêcher cet article
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        conteneur.innerHTML = html;
+        return;
+      }
+
+      // 2. VUE RAPPORT DU JOUR (CANEVAS EXÉCUTIF AÉRÉ)
+      if (ongletActif === 'rapport') {
+        const prioritaires = DONNEES.filter(d => d.score >= SEUIL);
+        const rejetsLexical = REJETS.filter(r => (r.raison || '').toLowerCase().includes('lexical')).length;
+        const rejetsDoublons = REJETS.filter(r => (r.raison || '').toLowerCase().includes('sens') || (r.raison || '').toLowerCase().includes('connu') || (r.raison || '').toLowerCase().includes('doublon')).length;
+        const rejetsLLM = REJETS.filter(r => (r.raison || '').toLowerCase().includes('llm') || (r.raison || '').toLowerCase().includes('hors sujet')).length;
+        const lienRapportMD = isFileProtocol ? `../data/${p_prefix}rapport.md` : `/api/fichier?nom=rapport.md&demo=${estDemo ? 1 : 0}&telecharger=1`;
+
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">
+              <div>
+                <div class="doc-title">Rapport Exécutif de Veille Technologique</div>
+                <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.2rem;">Synthèse décisionnelle et cartographie stratégique du jour • IA x BTP & Architecture</div>
+              </div>
+              <a href="${lienRapportMD}" download="${p_prefix}rapport.md" target="_blank" class="btn" title="Télécharger le fichier source Markdown">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Télécharger rapport.md
+              </a>
+            </div>
+
+            <!-- SECTION 1 : SYNTHÈSE DÉCISIONNELLE -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">1. Synthèse Décisionnelle & Indicateurs Clés</h3>
+            <table class="doc-table" style="margin-top:0; margin-bottom:1.75rem;">
+              <thead>
+                <tr>
+                  <th>Indicateur</th>
+                  <th>Valeur</th>
+                  <th>Interprétation & Impact pour les équipes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Innovations retenues en base</strong></td>
+                  <td><strong style="color:var(--text);">${DONNEES.length}</strong></td>
+                  <td>Corpus qualifié d'innovations validées par le double filtrage (lexique + IA).</td>
+                </tr>
+                <tr>
+                  <td><strong>Signaux prioritaires (Score &ge; ${SEUIL}/10)</strong></td>
+                  <td><strong style="color:var(--accent);">${prioritaires.length}</strong></td>
+                  <td>Innovations majeures à fort impact immédiat (BIM, sécurité chantier, automatisation).</td>
+                </tr>
+                <tr>
+                  <td><strong>Articles en quarantaine (Audit)</strong></td>
+                  <td><strong>${REJETS.length}</strong></td>
+                  <td>Articles hors sujet, doublons vectoriels ou faux amis filtrés pour audit humain.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- SECTION 2 : TOP SIGNAUX PRIORITAIRES -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">2. Top Signaux & Alertes Prioritaires (Score &ge; ${SEUIL}/10)</h3>
+            <div style="display:grid; gap:0.75rem; margin-bottom:1.75rem;">
+              ${prioritaires.slice(0, 4).map(p => `
+                <div style="background:#f8fafc; border:1px solid var(--border); border-left:3px solid var(--accent); padding:0.9rem 1.1rem; border-radius:4px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.35rem;">
+                    <div style="display:flex; align-items:center; gap:0.4rem; flex:1;">
+                      <a href="${protege(p.lien)}" target="_blank" rel="noopener" style="font-weight:600; font-size:0.92rem; color:var(--text); text-decoration:none;">
+                        ${protege(p.titre)}
+                      </a>
+                      <a href="${protege(p.lien)}" target="_blank" rel="noopener" class="icon-link" title="Consulter l'article original">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                      </a>
+                    </div>
+                    <span class="score-badge score-high" style="font-size:0.85rem; padding:0.15rem 0.5rem;">${p.score.toFixed(1)} / 10</span>
+                  </div>
+                  <div class="meta-tags" style="margin-bottom:0.4rem;">
+                    <span class="tag">${protege(p.phase)}</span>
+                    <span class="tag">TRL ${p.trl}/9</span>
+                    <span class="tag">${protege(p.source)}</span>
+                    <span class="tag">CRAAP: ${p.fiabilite}/10</span>
+                  </div>
+                  <div style="font-size:0.85rem; color:#334155; line-height:1.5;">${protege(p.resume_fr)}</div>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- SECTION 3 : RÉPARTITION CYCLE DE VIE -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">3. Répartition par Cycle de Vie du Bâtiment</h3>
+            <table class="doc-table" style="margin-top:0; margin-bottom:1.75rem;">
+              <thead>
+                <tr>
+                  <th>Phase du Cycle</th>
+                  <th>Volume</th>
+                  <th>Principaux axes technologiques observés</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Conception & Modélisation BIM</strong></td>
+                  <td><strong>${DONNEES.filter(d => d.phase === 'Conception').length} fiches</strong></td>
+                  <td>Génération de maquettes Revit/IFC par IA, optimisation générative de plans, stations de travail IA locales.</td>
+                </tr>
+                <tr>
+                  <td><strong>Chantier, Robotique & Sécurité</strong></td>
+                  <td><strong>${DONNEES.filter(d => d.phase === 'Chantier').length} fiches</strong></td>
+                  <td>Vision par ordinateur pour détection des EPI (casques), robots de navigation autonome, chantiers intelligents.</td>
+                </tr>
+                <tr>
+                  <td><strong>Exploitation & Jumeaux Numériques</strong></td>
+                  <td><strong>${DONNEES.filter(d => d.phase === 'Exploitation').length} fiches</strong></td>
+                  <td>Jumeaux numériques (Digital Twins), maintenance prédictive des équipements CVC, optimisation énergétique.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- SECTION 4 : BILAN QUALITÉ & FILTRAGE -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.75rem;">4. Bilan Qualité, Filtrage & Esprit Critique (Human-in-the-Loop)</h3>
+            <table class="doc-table" style="margin-top:0; margin-bottom:1.75rem;">
+              <thead>
+                <tr>
+                  <th>Niveau de Contrôle</th>
+                  <th>Articles écartés</th>
+                  <th>Objectif & Rigueur scientifique</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Filtre lexical (Regex)</strong></td>
+                  <td>${rejetsLexical}</td>
+                  <td>Élimination des actualités généralistes sans mots-clés du BTP ou de l'IA.</td>
+                </tr>
+                <tr>
+                  <td><strong>Dédoublonnage vectoriel</strong></td>
+                  <td>${rejetsDoublons}</td>
+                  <td>Suppression des clones de communiqués de presse et des articles déjà répertoriés (similarité cosinus &ge; 85%).</td>
+                </tr>
+                <tr>
+                  <td><strong>Validation sémantique LLM</strong></td>
+                  <td>${rejetsLLM}</td>
+                  <td>Neutralisation des faux amis (ex: architecture informatique, campus immobilier sans IA).</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- SECTION 5 : RECOMMANDATIONS OPÉRATIONNELLES -->
+            <h3 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.5rem;">5. Recommandations Opérationnelles pour les Équipes</h3>
+            <ul style="font-size:0.85rem; color:#334155; line-height:1.65; padding-left:1.25rem;">
+              <li><strong>Priorité BIM :</strong> Tester les assistants IA d'automatisation des nomenclatures et vérification QA/QC sur Revit pour réduire les temps d'études.</li>
+              <li><strong>Sécurité Terrain :</strong> Déployer des pilotes de vision par ordinateur sur site pour la conformité sécurité des ouvriers (détection port de casque).</li>
+              <li><strong>Conformité Réglementaire :</strong> Encadrer l'usage des caméras d'IA sur chantier conformément au Code du numérique béninois et aux exigences de l'APDP.</li>
+            </ul>
+          </div>
+        `;
+        return;
+      }
+
+      // 3. VUE SOURCES & GRILLE CRAAP
+      if (ongletActif === 'sources') {
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div class="formula-box">
+              <strong>Formule de calcul de la note de source (ramenée sur 10) :</strong><br>
+              Note Source = [ (Actualité + Pertinence + Autorité + Exactitude + Objectivité) / 25 ] x 10<br>
+              <em>Chaque critère CRAAP est noté de 1 à 5. Le total obtenu sur 25 est divisé par 25 puis multiplié par 10 pour obtenir une note standardisée sur 10.</em>
+            </div>
+
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Type</th>
+                  <th>Act. (C)</th>
+                  <th>Pert. (R)</th>
+                  <th>Aut. (A)</th>
+                  <th>Exact. (A)</th>
+                  <th>Obj. (P)</th>
+                  <th>Total /25</th>
+                  <th>Note CRAAP</th>
+                  <th>Analyse critique & Biais identifié</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>AEC Magazine</strong></td>
+                  <td>Presse spécialisée</td>
+                  <td>5 / 5</td>
+                  <td>5 / 5</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>23 / 25</td>
+                  <td><strong style="color:var(--success);">9.2 / 10</strong></td>
+                  <td>Référence internationale indépendante des logiciels BIM/AEC. Tests de banc d'essai réels, très faible complaisance.</td>
+                </tr>
+                <tr>
+                  <td><strong>Construction Dive</strong></td>
+                  <td>Presse métier BTP</td>
+                  <td>5 / 5</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>22 / 25</td>
+                  <td><strong style="color:var(--success);">8.8 / 10</strong></td>
+                  <td>Média professionnel reconnu sur la réalité des chantiers (sécurité, coûts, litiges, robotique ouvrière).</td>
+                </tr>
+                <tr>
+                  <td><strong>arXiv (cs.AI, cs.CV)</strong></td>
+                  <td>Recherche scientifique</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>20 / 25</td>
+                  <td><strong style="color:var(--accent);">8.0 / 10</strong></td>
+                  <td>Pointe mondiale de l'innovation (preprints scientifiques). Rigueur technique forte, mais absence de validation par les pairs (peer-review).</td>
+                </tr>
+                <tr>
+                  <td><strong>ArchDaily</strong></td>
+                  <td>Portail architectural</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>20 / 25</td>
+                  <td><strong style="color:var(--accent);">8.0 / 10</strong></td>
+                  <td>Média architectural mondial de référence. Biais esthétique marqué (focus sur le rendu visuel et la forme plus que sur la technique).</td>
+                </tr>
+                <tr>
+                  <td><strong>Google Actualités (Bilingue)</strong></td>
+                  <td>Agrégateur RSS</td>
+                  <td>5 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>4 / 5</td>
+                  <td>3 / 5</td>
+                  <td>19 / 25</td>
+                  <td><strong>7.6 / 10</strong></td>
+                  <td>Capte les signaux faibles et la presse quotidienne. Qualité hétérogène nécessitant un double filtrage automatisé strict.</td>
+                </tr>
+                <tr>
+                  <td><strong>Graphisoft (Archicad)</strong></td>
+                  <td>Éditeur commercial</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>4 / 5</td>
+                  <td>1 / 5</td>
+                  <td>17 / 25</td>
+                  <td><strong style="color:var(--warning);">6.8 / 10</strong></td>
+                  <td>Biais commercial et publicitaire évident : Objectivité pénalisée à 1/5 pour neutraliser l'autopromotion logicielle.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      // 4. VUE NOTATION DES ARTICLES
+      if (ongletActif === 'notation') {
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div class="doc-title">Grille & Notation Multicritère des Articles</div>
+
+            <div class="formula-box">
+              <strong>Formule du Score Global de l'Article (sur 10) :</strong><br>
+              Score = (0.35 x Pertinence IA) + (0.25 x Fiabilité Source CRAAP) + (0.20 x Impact Métier BTP) + (0.20 x Fraîcheur Temporelle)<br>
+              <em>Seuil d'alerte prioritaire : Score >= ${SEUIL} / 10</em>
+            </div>
+
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Critère</th>
+                  <th>Poids</th>
+                  <th>Méthode d'évaluation</th>
+                  <th>Justification du poids accordé</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Pertinence Thématique</strong></td>
+                  <td><strong>35 %</strong></td>
+                  <td>Note de 1 à 10 attribuée par Gemini après analyse sémantique du texte complet.</td>
+                  <td>Critère prioritaire absolu : élimine les « faux amis », c'est-à-dire les mots qui ressemblent au domaine mais n'ont aucun rapport (ex: « architecture informatique » chez Intel/NVIDIA au lieu d'un bâtiment, ou « chantier » employé au sens figuré comme « chantier des retraites »).</td>
+                </tr>
+                <tr>
+                  <td><strong>Fiabilité de la Source</strong></td>
+                  <td><strong>25 %</strong></td>
+                  <td>Note CRAAP de la source émettrice ramenée sur 10 (ex: AEC Mag = 9.2, Graphisoft = 6.8).</td>
+                  <td>Garantit que les articles issus de revues rigoureuses pèsent plus lourd que les communiqués marketing de vendeurs.</td>
+                </tr>
+                <tr>
+                  <td><strong>Impact Métier BTP</strong></td>
+                  <td><strong>20 %</strong></td>
+                  <td>Évaluation LLM du potentiel de transformation concrète (sécurité chantier, gain temps BIM, coûts).</td>
+                  <td>Distingue une véritable avancée opérationnelle d'une simple annonce spéculative sans application terrain.</td>
+                </tr>
+                <tr>
+                  <td><strong>Fraîcheur Temporelle</strong></td>
+                  <td><strong>20 %</strong></td>
+                  <td>Récence de la publication : note de 10/10 pour les articles parus dans les 7 derniers jours, 7 à 8/10 pour les articles de 2 à 3 semaines, et 5/10 au-delà d'un mois.</td>
+                  <td>Favorise les informations récentes et les signaux faibles pour alerter rapidement l'équipe, tout en conservant les publications de référence du mois.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div style="background:#f8fafc; border:1px solid var(--border); border-left:3px solid var(--accent); padding:0.85rem 1rem; border-radius:4px; margin-top:1.25rem;">
+              <strong>Pourquoi la maturité technologique (TRL) n'est-elle pas un critère dans la note sur 10 ?</strong><br>
+              <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.5; margin-top:0.35rem;">
+                Le <strong>Score sur 10</strong> mesure la valeur <em>informationnelle</em> d'une publication (est-ce fiable ? récent ? pertinent ?).<br>
+                Le <strong>TRL (1 à 9)</strong> mesure quant à lui le <em>stade d'avancement technique</em> de l'innovation décrite.<br>
+                Si le TRL était inclus dans la formule avec un fort coefficient, les articles de recherche scientifique fondamentale de pointe (comme les preprints sur arXiv, notés TRL 2 ou 3) recevraient de mauvaises notes et seraient éliminés du tableau de bord !<br>
+                Le TRL est donc utilisé comme <strong>indicateur de classification</strong> : il permet à l'ingénieur de distinguer immédiatement une théorie de laboratoire prometteuse (TRL 1-3) d'un outil directement déployable sur chantier (TRL 7-9).
+              </div>
+            </div>
+
+            <div style="margin-top:1.5rem;">
+              <h4 style="font-size:0.95rem; font-weight:700; color:var(--text); margin-bottom:0.5rem;">Échelle de Maturité Technologique (TRL 1 à 9) :</h4>
+              <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.5; margin-bottom:0.75rem;">
+                Le TRL (<em>Technology Readiness Level</em>, norme NASA / ISO 16290) qualifie le degré de maturité d'une innovation :
+              </p>
+              <table class="doc-table">
+                <tr><td style="width:120px;"><strong>TRL 1 à 3</strong></td><td><strong>Recherche Fondamentale & Preuve de Concept</strong> : Publications théoriques, formulations mathématiques (ex: preprints arXiv).</td></tr>
+                <tr><td><strong>TRL 4 à 6</strong></td><td><strong>Développement & Validation en Laboratoire</strong> : Prototypes algorithmiques, plugins bêta testés sur maquettes numériques témoins.</td></tr>
+                <tr><td><strong>TRL 7 à 9</strong></td><td><strong>Déploiement Opérationnel Réel</strong> : Systèmes certifiés utilisés sur de vrais chantiers de construction ou logiciels commerciaux déployés (ex: Autodesk, GS E&C).</td></tr>
+              </table>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      // 5. VUE COMMENT ÇA MARCHE ? (ARCHITECTURE & PIPELINE)
+      if (ongletActif === 'archi') {
+        conteneur.innerHTML = `
+          <div class="doc-section">
+            <div class="doc-title">Architecture Technique & Pipeline d'Automatisation</div>
+
+            <div class="formula-box">
+              <strong>Pipeline de Traitement en 5 Étapes :</strong><br>
+              1. Collecte Push (Flux RSS/Atom) ➔ 2. Filtre Lexical (Regex) ➔ 3. Dédoublonnage Vectoriel (Embeddings cosinus >= 0.85)<br>
+              ➔ 4. Invalidation Sémantique & Analyse LLM (Gemini) ➔ 5. Scoring Multicritère & Restitution Web / CSV / Alertes
+            </div>
+
+            <table class="doc-table">
+              <thead>
+                <tr>
+                  <th>Module / Fichier</th>
+                  <th>Rôle technique dans le dispositif</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>collecte.py</code></td>
+                  <td>Moissonne les flux RSS/Atom distants avec assainissement regex XML des entités malformées et gestion des timeouts.</td>
+                </tr>
+                <tr>
+                  <td><code>filtre.py</code></td>
+                  <td>Filtre n°1 lexical rapide : expressions régulières bilingues (FR/EN) sur les thématiques BIM, sécurité, jumeaux et IA.</td>
+                </tr>
+                <tr>
+                  <td><code>doublons.py</code> & <code>embeddings.py</code></td>
+                  <td>Normalisation des URLs et dédoublonnage vectoriel sémantique par similarité cosinus (seuil 0.85) pour éliminer les clones d'articles.</td>
+                </tr>
+                <tr>
+                  <td><code>llm.py</code> & <code>gemini.py</code></td>
+                  <td>Filtre n°2 sémantique avec Gemini : rejet des faux amis, classification par phase du bâtiment, évaluation TRL et résumé FR.</td>
+                </tr>
+                <tr>
+                  <td><code>scoring.py</code></td>
+                  <td>Calculateur déterministe de la note sur 10 croisant CRAAP, pertinence IA, impact chantier et fraîcheur exponentielle.</td>
+                </tr>
+                <tr>
+                  <td><code>sortie.py</code></td>
+                  <td>Écriture des fichiers de données : <code>veille.csv</code> (UTF-8 avec BOM), <code>rejets.csv</code> (traçabilité), et <code>rapport.md</code>.</td>
+                </tr>
+                <tr>
+                  <td><code>serveur.py</code> & <code>dashboard.py</code></td>
+                  <td>Micro-serveur HTTP local (port 8000) et Observatoire Web monopage avec repêchage interactif <em>Human-in-the-Loop</em>.</td>
+                </tr>
+                <tr>
+                  <td><code>.github/workflows/veille.yml</code></td>
+                  <td>Automatisation CI/CD dans le cloud : exécute la veille quotidienne à 08:00 (Bénin) et republie sur GitHub Pages.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+
+      // 6. VUE FICHES VALIDÉES
+      const q = document.getElementById('recherche').value.toLowerCase().trim();
+      const phase = document.getElementById('phase').value;
+      const min = +document.getElementById('min').value;
+      document.getElementById('val').textContent = min;
+
+      const choisis = DONNEES.filter(d => {
+        const matchPhase = !phase || d.phase === phase;
+        const matchScore = d.score >= min;
+        const matchQ = !q || (d.titre + ' ' + d.resume_fr + ' ' + d.source).toLowerCase().includes(q);
+        return matchPhase && matchScore && matchQ;
+      }).sort((a, b) => b.score - a.score);
+
+      document.getElementById('nb').textContent = choisis.length + ' fiches affichées';
+
+      if (!choisis.length) {
+        conteneur.innerHTML = '<div class="empty">Aucune fiche ne correspond à vos critères de recherche.</div>';
+        return;
+      }
+
+      conteneur.innerHTML = choisis.map(d => {
+        const estChaud = d.score >= SEUIL;
+        const phaseClass = d.phase === 'Conception' ? 'tag-conception' : d.phase === 'Chantier' ? 'tag-chantier' : 'tag-exploitation';
+        return `
+          <div class="carte">
+            <div class="carte-header">
+              <div class="carte-title-wrapper">
+                <a href="${protege(d.lien)}" target="_blank" rel="noopener" class="carte-title">
+                  ${protege(d.titre)}
+                </a>
+                <a href="${protege(d.lien)}" target="_blank" rel="noopener" class="icon-link" title="Consulter l'article original">
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+              </div>
+              <div class="score-badge ${estChaud ? 'score-high' : ''}">${d.score.toFixed(1)} / 10</div>
+            </div>
+            <div class="meta-tags">
+              <span class="tag ${phaseClass}">${protege(d.phase)}</span>
+              <span class="tag">TRL ${d.trl} / 9</span>
+              <span class="tag">${protege(d.source)}</span>
+              <span class="tag">CRAAP Source: ${d.fiabilite}/10</span>
+              <span class="tag">${protege(d.date_pub || d.date_collecte)}</span>
+              <span class="tag">Méthode: ${protege(d.methode)}</span>
+            </div>
+            <div class="resume">${protege(d.resume_fr)}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ACTIONS BACKEND
+    async function declencherVeille(btn) {
+      if (isFileProtocol) {
+        alert(`Information : Pour déclencher la collecte en direct depuis le navigateur :\\n\\n1. Lancez dans un terminal : python serveur.py\\n2. Ouvrez http://localhost:8000`);
+        return;
+      }
+      btn.disabled = true;
+      const init = btn.textContent;
+      btn.textContent = 'Collecte en cours...';
+      notifier('Collecte des flux et analyse LLM en cours...', 'info', 0);
+      try {
+        const res = await fetch('/api/lancer_veille', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ demo: estDemo })
+        });
+        const d = await res.json();
+        if (d.succes) {
+          notifier(`Veille terminée : ${d.stats.nouvelles} nouvelles fiches. Rechargement...`, 'success', 4000);
+          setTimeout(() => window.location.reload(), 1500);
+        } else {
+          notifier('Erreur : ' + (d.erreur || 'Échec de la collecte'), 'error');
+        }
+      } catch (e) {
+        notifier('Erreur de communication avec le serveur local.', 'error');
+      }
+      btn.disabled = false;
+      btn.textContent = init;
+    }
+
+    async function repecherArticle(index, btn) {
+      if (isFileProtocol) {
+        alert(`Information : Le repêchage en direct nécessite le serveur local :\\n\\n1. Lancez dans un terminal : python serveur.py\\n2. Ouvrez http://localhost:8000`);
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Analyse...';
+      try {
+        const res = await fetch('/api/repecher', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ index: index, demo: estDemo })
+        });
+        if (res.ok) {
+          const d = await res.json();
+          alert(`Article repêché et validé :\\n\\n${d.article.titre}\\n\\nScore : ${d.article.score}/10 | Phase : ${d.article.phase}`);
+          window.location.reload();
+          return;
+        }
+      } catch (e) {
+        alert('Erreur : assurez-vous que python serveur.py est bien lancé.');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Repêcher cet article';
+    }
+
+    async function reinitialiserDemo(btn) {
+      if (isFileProtocol) {
+        alert(`Information : La réinitialisation nécessite le serveur local.\\nLancez 'python serveur.py' et ouvrez http://localhost:8000.`);
+        return;
+      }
+      if (!confirm('Réinitialiser les données de démo et relancer le jeu de test ?')) return;
+      btn.disabled = true;
+      notifier('Réinitialisation du jeu de données démo...', 'info', 0);
+      try {
+        const res = await fetch('/api/reset_demo', { method: 'POST' });
+        if (res.ok) {
+          notifier('Démo réinitialisée. Rechargement...', 'success', 3000);
+          setTimeout(() => window.location.reload(), 1000);
+          return;
+        }
+      } catch (e) {
+        notifier('Erreur lors de la réinitialisation.', 'error');
+      }
+      btn.disabled = false;
+    }
+
+    function initialiserControle() {
+      const p_prefix = estDemo ? 'demo_' : '';
+      const statutEl = document.getElementById('statut-serveur');
+      const btnExcelVeille = document.getElementById('btn-excel-veille');
+      const btnCsvVeille = document.getElementById('btn-csv-veille');
+      const btnExcelRejets = document.getElementById('btn-excel-rejets');
+
+      if (isFileProtocol) {
+        if (statutEl) {
+          statutEl.className = 'status-pill status-offline';
+          statutEl.innerHTML = '<span class="dot"></span> Mode Hors-Ligne';
+        }
+        if (btnExcelVeille) btnExcelVeille.href = `../data/${p_prefix}veille.xlsx`;
+        if (btnCsvVeille) btnCsvVeille.href = `../data/${p_prefix}veille.csv`;
+        if (btnExcelRejets) btnExcelRejets.href = `../data/${p_prefix}rejets.xlsx`;
+      } else if (window.location.hostname.includes('github.io')) {
+        if (statutEl) {
+          statutEl.className = 'status-pill status-cloud';
+          statutEl.innerHTML = '<span class="dot"></span> Déploiement Cloud';
+        }
+        if (btnExcelVeille) btnExcelVeille.href = `../data/${p_prefix}veille.xlsx`;
+        if (btnCsvVeille) btnCsvVeille.href = `../data/${p_prefix}veille.csv`;
+        if (btnExcelRejets) btnExcelRejets.href = `../data/${p_prefix}rejets.xlsx`;
+      } else {
+        if (statutEl) {
+          statutEl.className = 'status-pill status-online';
+          statutEl.innerHTML = '<span class="dot"></span> Serveur Actif';
+        }
+        if (btnExcelVeille) btnExcelVeille.href = `/api/fichier?nom=veille.xlsx&demo=${estDemo ? 1 : 0}&telecharger=1`;
+        if (btnCsvVeille) btnCsvVeille.href = `/api/fichier?nom=veille.csv&demo=${estDemo ? 1 : 0}&telecharger=1`;
+        if (btnExcelRejets) btnExcelRejets.href = `/api/fichier?nom=rejets.xlsx&demo=${estDemo ? 1 : 0}&telecharger=1`;
+      }
+    }
+
+    document.getElementById('recherche').oninput = afficher;
+    document.getElementById('phase').onchange = afficher;
+    document.getElementById('min').oninput = afficher;
+    updateKPIs();
+    initialiserControle();
+    afficher();
+  </script>
+</body>
+</html>"""
+
+
+def ecrire(chemin, lignes, seuil, rejets=None):
+    donnees = json.dumps(lignes, ensure_ascii=False).replace("</", "<\\/")
+    rejets_liste = []
+    if rejets:
+        for item in rejets:
+            if isinstance(item, tuple) and len(item) == 2:
+                art, raison = item
+                rejets_liste.append({
+                    "titre": art.get("titre", ""),
+                    "source": art.get("source", ""),
+                    "lien": art.get("lien", ""),
+                    "raison": str(raison)
+                })
+            elif isinstance(item, dict):
+                rejets_liste.append({
+                    "titre": item.get("titre", ""),
+                    "source": item.get("source", ""),
+                    "lien": item.get("lien", ""),
+                    "raison": item.get("raison") or item.get("motif_rejet", "")
+                })
+    rejets_json = json.dumps(rejets_liste, ensure_ascii=False).replace("</", "<\\/")
+
+    page = (PAGE.replace("__DATA__", donnees)
+                .replace("__REJETS__", rejets_json)
+                .replace("__SEUIL__", str(seuil))
+                .replace("__DATE__", f"{datetime.now():%d/%m/%Y}"))
+    with open(chemin, "w", encoding="utf-8") as f:
+        f.write(page)
